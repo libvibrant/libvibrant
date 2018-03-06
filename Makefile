@@ -4,10 +4,16 @@ CC=gcc
 LDFLAGS=$(shell pkg-config --cflags libdrm)
 LDLIBS = $(shell pkg-config --libs libdrm) -lm
 
-SOURCES=$(wildcard *.c)
-EXECUTABLES=$(patsubst %.c,%,$(SOURCES))
+# All sources
+SOURCES=demo.c
+# The build directory
+BUILD=build
+# All executables to be cleaned
+EXECUTABLES=$(BUILD)/demo
 
-all: $(EXECUTABLES)
+$(BUILD)/demo: demo.c
+	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LDLIBS) -o $@
 
+.PHONY: clean
 clean:
 	rm -f $(EXECUTABLES)
