@@ -23,15 +23,22 @@
  *
  */
 
-#include <xf86drm.h>
-#include <stdio.h>
+#include <fcntl.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 
 
 #define LUT_SIZE 16
 
 
-/* Data structures for gamma/degamma ramps & ctm matrix. */
+/**
+ * The below data structures are identical to the ones used by DRM. They are
+ * here to help us structure the data being passed to the kernel.
+ */
 struct _drm_color_ctm {
 	/* Transformation matrix in S31.32 format. */
 	__s64 matrix[9];
@@ -47,6 +54,7 @@ struct _drm_color_lut {
 	__u16 reserved;
 };
 
+/* Struct to make constructing luts easier. */
 struct color3d {
 	double r;
 	double g;
@@ -54,7 +62,7 @@ struct color3d {
 };
 
 
-/**
+/*******************************************************************************
  * Helper functions
  */
 
@@ -114,16 +122,94 @@ static void print_lut(const struct _drm_color_lut *lut, int lut_size)
 	}
 }
 
+static int fd_is_device(int fd, const char *expect)
+{
+	char name[5] = "";
+	drm_version_t version = {0};
+
+	version.name_len = 4;
+	version.name = name;
+	if (drmIoctl(fd, DRM_IOCTL_VERSION, &version))
+		return 0;
+
+	return strcmp(expect, version.name) == 0;
+}
+
+static int open_drm_device()
+{
+	char *base = "/dev/dri/card";
+	int i = 0;
+	for (i = 0; i < 16; i++) {
+		char name[80];
+		int fd;
+
+		sprintf(name, "%s%u", base, i);
+		printf("Opening %s... ", name);
+		fd = open(name, O_RDWR);
+		if (fd == -1) {
+			printf("Failed.\n");
+			continue;
+		}
+
+		if (fd_is_device(fd, "i915")){
+			printf("Success!\n");
+			return fd;
+		}
+
+		printf("Not an amdgpu device.\n");
+		close(fd);
+	}
+	return -1;
+}
+
+/*******************************************************************************
+ * main
+ */
 
 int main(int argc, char const *argv[])
 {
 	struct color3d coeffs[LUT_SIZE];
 	struct _drm_color_lut lut[LUT_SIZE];
 
-	load_table(coeffs, LUT_SIZE, 1);
-	print_coeffs(coeffs, LUT_SIZE);
+	int ret;
 
+	int fd = open_drm_device();
+	if (fd == -1) {
+		printf("No valid devices found\n");
+		return -1;
+	}
+
+	load_table(coeffs, LUT_SIZE, 1);
 	coeffs_to_lut(coeffs, lut, LUT_SIZE);
-	print_lut(lut, LUT_SIZE);
+
+	size_t size = sizeof(struct _drm_color_lut) * LUT_SIZE;
+	uint32_t blob_id = 0;
+
+	ret = drmModeCreatePropertyBlob(fd, lut, size, &blob_id);
+	if (ret) {
+		printf("Failed to create blob. %d\n", ret);
+		return ret;
+	}
+
+	printf("Successfully created property blob with id %d\n", blob_id);
+	drmModePropertyBlobPtr blob = drmModeGetPropertyBlob(fd, blob_id);
+	if (!blob) {
+		printf("Failed to get blob.\n");
+		return -1;
+	}
+
+	struct _drm_color_lut *ret_lut = (struct _drm_color_lut *)blob->data;
+
+	print_lut(ret_lut, LUT_SIZE);
+
+	ret = drmModeDestroyPropertyBlob(fd, blob_id);
+	if (ret) {
+		printf("Failed to destroy blob. %d\n", ret);
+		return -1;
+	}
+
+	drmModeFreePropertyBlob(blob);
+
+	printf("Done!\n");
 	return 0;
 }
