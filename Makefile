@@ -6,12 +6,10 @@ LDLIBS = $(shell pkg-config --libs libdrm) -lm
 
 # All sources
 SOURCES=demo.c
-# The build directory
-BUILD=build
 # All executables to be cleaned
-EXECUTABLES=$(BUILD)/demo
+EXECUTABLES=demo
 
-$(BUILD)/demo: demo.c
+demo: demo.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LDLIBS) -o $@
 
 .PHONY: clean
