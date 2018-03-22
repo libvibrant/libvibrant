@@ -491,6 +491,68 @@ int parse_user_regamma(char *gamma_opt, struct color3d *coeffs, int *is_srgb)
 	return 1;
 }
 
+const char *SHORT_HELP_STR =
+"Usage: demo [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]\n";
+
+const char *HELP_STR =
+"Usage: demo [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]\n"
+"\n"
+"Demo app for for creating DRM color/CTM blobs, then setting it via xrandr. Note\n"
+"that this requires updates to the amdpgu DDX driver for color management\n"
+"support.\n"
+"\n"
+"Optional arguments:\n"
+"\n"
+"    -d DEGAMMA_OPTS\n"
+"        \n"
+"        Set degamma to the specified DEGAMMA_OPTS. Available options are:\n"
+"\n"
+"            srgb: SRGB degamma\n"
+"            linear: Linear degamma\n"
+"\n"
+"    -c CTM_OPTS \n"
+"\n"
+"        Set the Color Transform Matrix (CTM) to the specified CTM_OPTS.\n"
+"        Available options are:\n"
+"\n"
+"            id:\n"
+"                Identity CTM\n"
+"            rg:\n"
+"                Red-to-green CTM\n"
+"            rb:\n"
+"                Red-to-blue CTM\n"
+"            f:f:f:f:f:f:f:f:f\n"
+"                A nonuple (9-element tuple) of doubles, delimited by colons,\n"
+"                row-representing a 3x3 matrix. For example, 1:0:1:0:0.5:0:0:0:1\n"
+"                will depict:\n"
+"                    |1  0  1|\n"
+"                    |0 0.5 0|\n"
+"                    |0  0  1|\n"
+"\n"
+"    -d REGAMMA_OPTS\n"
+"\n"
+"        Set regamma to the specified REGAMMA_OPTS. Available options are:\n"
+"\n"
+"            srgb:\n"
+"                SRGB regamma\n"
+"            min:\n"
+"                All-zero regamma curve.\n"
+"            max:\n"
+"                All maximum regamma curve. Maps everything, except for\n"
+"                0-colors, to their maximum.\n"
+"            f:f:f\n"
+"                A triple (3-element tuple) of doubles, delimited by colons.\n"
+"                For example, 1:0.5:1.11 will use the following gamma curves for\n"
+"                each channel:\n"
+"                    y_r: x_r ^ 1\n"
+"                    y_g: x_g ^ (1/0.5)\n"
+"                    y_b: x_b ^ (1/1.11)\n"
+"                where y=f(x) represents the regamma curve, and x and y are color\n"
+"                vectors.\n"
+"\n"
+"    -h\n"
+"        Show this message.\n";
+
 int main(int argc, char *const argv[])
 {
 	struct color3d degamma_coeffs[LUT_SIZE];
@@ -507,7 +569,7 @@ int main(int argc, char *const argv[])
 	 * Parse arguments
 	 */
 
-	int opt;
+	int opt = -1;
 	char *degamma_opt = NULL;
 	char *ctm_opt = NULL;
 	char *regamma_opt = NULL;
@@ -516,15 +578,19 @@ int main(int argc, char *const argv[])
 	int ctm_changed;
 	int regamma_changed, regamma_is_srgb;
 
-	while ((opt = getopt(argc, argv, "d:c:r:")) != -1) {
+	while ((opt = getopt(argc, argv, "hd:c:r:")) != -1) {
 		if (opt == 'd')
 			degamma_opt = optarg;
 		else if (opt == 'c')
 			ctm_opt = optarg;
 		else if (opt == 'r')
 			regamma_opt = optarg;
+		else if (opt == 'h') {
+			printf("%s", HELP_STR);
+			return 0;
+		}
 		else {
-			printf("Invalid use.\n");
+			printf("%s", SHORT_HELP_STR);
 			return -1;
 		}
 	}
@@ -539,8 +605,10 @@ int main(int argc, char *const argv[])
 	regamma_changed = parse_user_regamma(regamma_opt, regamma_coeffs,
 					     &regamma_is_srgb);
 
-	if (!degamma_changed && !ctm_changed && !regamma_changed)
+	if (!degamma_changed && !ctm_changed && !regamma_changed) {
+		printf("%s", SHORT_HELP_STR);
 		return 0;
+	}
 
 	drm_fd = open_drm_device();
 	if (drm_fd == -1) {
