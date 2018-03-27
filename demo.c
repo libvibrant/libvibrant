@@ -621,6 +621,10 @@ const char *HELP_STR =
 
 int main(int argc, char *const argv[])
 {
+	/* These coefficient arrays store an intermediary form of the DRM blob
+	 * to be set. They will be translated into the format that DRM expects
+	 * when they are given to libdrm to be created within the kernel.
+	 */
 	struct color3d degamma_coeffs[LUT_SIZE];
 	double ctm_coeffs[9];
 	struct color3d regamma_coeffs[LUT_SIZE];
@@ -628,6 +632,7 @@ int main(int argc, char *const argv[])
 	int drm_fd;
 	int ret = 0;
 
+	/* Things needed by xrandr to change output properties */
 	Display *dpy;
 	Window root;
 	XRRScreenResources *res;
@@ -637,7 +642,6 @@ int main(int argc, char *const argv[])
 	/*
 	 * Parse arguments
 	 */
-
 	int opt = -1;
 	char *degamma_opt = NULL;
 	char *ctm_opt = NULL;
@@ -664,21 +668,20 @@ int main(int argc, char *const argv[])
 		}
 	}
 
-	/* Parse the input, and create an intermediate 'coefficient' form of
-	 * the blob. Further translation is needed before the blob can be
-	 * interpreted by DRM.
-	 */
+	/* Parse the input, and generate the intermediate coefficient arrays */
 	degamma_changed = parse_user_degamma(degamma_opt, degamma_coeffs,
 					     &degamma_is_srgb);
 	ctm_changed = parse_user_ctm(ctm_opt, ctm_coeffs);
 	regamma_changed = parse_user_regamma(regamma_opt, regamma_coeffs,
 					     &regamma_is_srgb);
 
+	/* Print help if input is not as expected */
 	if (!degamma_changed && !ctm_changed && !regamma_changed) {
 		printf("%s", SHORT_HELP_STR);
 		return 0;
 	}
 
+	/* Open DRM device, and obtain file descriptor */
 	drm_fd = open_drm_device();
 	if (drm_fd == -1) {
 		printf("No valid devices found\n");
@@ -686,17 +689,23 @@ int main(int argc, char *const argv[])
 		return -1;
 	}
 
-	/* Open the default display and window*/
+	/* Open the default X display and window, then obtain the RandR screen
+	 * resource. */
 	dpy = XOpenDisplay(NULL);
 	root = DefaultRootWindow(dpy);
 	res = XRRGetScreenResourcesCurrent(dpy, root);
 
+	/* RandR needs to know which output we're setting the property on.
+	 * Since we only have a name to work with, find the RROutput using the
+	 * name. */
 	output = find_output_by_name(dpy, res, "DisplayPort-0");
 	if (!output) {
 		printf("Cannot find output!\n");
 		goto done;
 	}
 
+	/* Set the properties as parsed. The set_* functions will also
+	 * translate the coefficients. */
 	if (degamma_changed) {
 		ret = set_gamma(dpy, output, drm_fd,
 				degamma_coeffs, degamma_is_srgb, 1);
@@ -716,6 +725,7 @@ int main(int argc, char *const argv[])
 	}
 
 done:
+	/* Ensure proper cleanup */
 	XRRFreeScreenResources(res);
 	XCloseDisplay(dpy);
 	close(drm_fd);
