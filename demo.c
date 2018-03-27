@@ -39,6 +39,10 @@
 
 #define LUT_SIZE 4096
 
+#define PROP_GAMMA "GAMMA_LUT"
+#define PROP_DEGAMMA "DEGAMMA_LUT"
+#define PROP_CTM "CTM"
+
 /**
  * The below data structures are identical to the ones used by DRM. They are
  * here to help us structure the data being passed to the kernel.
@@ -274,7 +278,7 @@ static int set_gamma(int drm_fd, struct color3d *coeffs, int is_srgb,
 	 * set a NULL blob id (0) */
 
 	sprintf(randr_cmd, "xrandr --output DisplayPort-0 --set %s %d",
-		is_degamma ? "DEGAMMA_LUT" : "GAMMA_LUT", blob_id);
+		is_degamma ? PROP_DEGAMMA : PROP_GAMMA, blob_id);
 
 	printf("# %s\n", randr_cmd);
 	system(randr_cmd);
@@ -324,8 +328,8 @@ static int set_ctm(int drm_fd, double *coeffs)
 	}
 	printf("Created property blob with id %d\n", blob_id);
 
-	sprintf(randr_cmd, "xrandr --output DisplayPort-0 --set CTM %d",
-		blob_id);
+	sprintf(randr_cmd, "xrandr --output DisplayPort-0 --set %s %d",
+		PROP_CTM, blob_id);
 
 	printf("# %s\n", randr_cmd);
 	system(randr_cmd);
