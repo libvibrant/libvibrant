@@ -34,6 +34,7 @@
 #include <xf86drmMode.h>
 
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include <X11/extensions/Xrandr.h>
 
 
@@ -237,6 +238,57 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
 }
 
 /**
+ * Set a DRM blob property on the given output. It calls XSync at the end to
+ * flush the change request so that it applies.
+ *
+ * @dpy: The X Display
+ * @output: RandR output to set the property on
+ * @prop_name: String name of the property.
+ * @blob_id: The new blob_id to set this blob property to.
+ *
+ * Return: X-defined return codes:
+ *     - BadAtom if the given name string doesn't exist.
+ *     - BadName if the property referenced by the name string does not exist on
+ *       the given connector
+ *     - Success otherwise.
+ */
+static int set_output_blob_id(Display *dpy, RROutput output,
+			      const char *prop_name,
+			      uint32_t blob_id)
+{
+	Atom prop_atom;
+	XRRPropertyInfo *prop_info;
+
+	/* Find the X Atom associated with the property name */
+	prop_atom = XInternAtom (dpy, prop_name, 1);
+	if (!prop_atom) {
+		printf("Property key '%s' not found.\n", prop_name);
+		return BadAtom;
+	}
+
+	/* Make sure the property exists */
+	prop_info = XRRQueryOutputProperty(dpy, output, prop_atom);
+	if (!prop_info) {
+		printf("Property key '%s' not found on output\n", prop_name);
+		return BadName;  /* Property not found */
+	}
+
+	/* Change the property, then call XSync to apply it. 
+	 *
+	 * Gotcha: Do not release the DRM blob attached to the blob ID before
+	 * the property change is synced! Else the blob will be freed in kernel
+	 * before it can be set.
+	 */
+	printf("Set property '%s' to %d\n", prop_name, blob_id);
+	XRRChangeOutputProperty(dpy, output, prop_atom,
+				XA_INTEGER, 32, PropModeReplace,
+				(unsigned char *) &blob_id, 1);
+	XSync(dpy, 0);
+
+	return Success;
+}
+
+/**
  * Create a DRM color LUT blob using the given coefficients, and set the
  * output's CRTC to use it. Since setting degamma and regamma follows similar
  * procedures, a flag is used to determine which one is set. Also note the
@@ -250,15 +302,13 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
  *           the blob id to 0)
  * @is_degamma: True if degamma is being set. Set regamma otherwise.
  */
-static int set_gamma(int drm_fd, struct color3d *coeffs, int is_srgb,
-		     int is_degamma)
+static int set_gamma(Display *dpy, RROutput output, int drm_fd,
+		     struct color3d *coeffs, int is_srgb, int is_degamma)
 {
 	struct _drm_color_lut lut[LUT_SIZE];
 	uint32_t blob_id = 0;
 
-	char randr_cmd[128];
-
-	int ret;
+	int ret = 0;
 
 	if (!is_srgb) {
 		/* Using LUT */
@@ -269,19 +319,14 @@ static int set_gamma(int drm_fd, struct color3d *coeffs, int is_srgb,
 			printf("Failed to create blob. %d\n", ret);
 			return ret;
 		}
-
-		printf("Created property blob with id %d\n",
-		       blob_id);
 	}
 	/* Else:
 	 * In the special case of SRGB, don't create the blob. We just need to
 	 * set a NULL blob id (0) */
 
-	sprintf(randr_cmd, "xrandr --output DisplayPort-0 --set %s %d",
-		is_degamma ? PROP_DEGAMMA : PROP_GAMMA, blob_id);
-
-	printf("# %s\n", randr_cmd);
-	system(randr_cmd);
+	ret = set_output_blob_id(dpy, output,
+				 is_degamma ? PROP_DEGAMMA : PROP_GAMMA,
+				 blob_id);
 
 	if (blob_id) {
 		/* Make sure to destroy the blob if one was created.
@@ -290,15 +335,10 @@ static int set_gamma(int drm_fd, struct color3d *coeffs, int is_srgb,
 		 * The blob property is ref-counted within the kernel, and will
 		 * be freed once the CRTC it's attached on is destroyed.
 		 */
-		ret = drmModeDestroyPropertyBlob(drm_fd, blob_id);
-		if (ret) {
-			printf("Failed to destroy blob. %d\n", ret);
-			return ret;
-		}
-
-		printf("Destroyed property blob with id %d\n", blob_id);
+		drmModeDestroyPropertyBlob(drm_fd, blob_id);
 	}
-	return 0;
+
+	return ret;
 }
 
 /**
@@ -309,40 +349,29 @@ static int set_gamma(int drm_fd, struct color3d *coeffs, int is_srgb,
  * blob being created. See set_gamma() for a description of the steps being
  * done.
  */
-static int set_ctm(int drm_fd, double *coeffs)
+static int set_ctm(Display *dpy, RROutput output, int drm_fd, double *coeffs)
 {
 	struct _drm_color_ctm ctm;
 	uint32_t blob_id = 0;
 	size_t blob_size;
 
-	char randr_cmd[128];
-
 	int ret;
 
 	coeffs_to_ctm(coeffs, &ctm);
 	blob_size = sizeof(ctm);
+
 	ret = drmModeCreatePropertyBlob(drm_fd, &ctm, blob_size, &blob_id);
 	if (ret) {
 		printf("Failed to create blob. %d\n", ret);
 		return ret;
 	}
-	printf("Created property blob with id %d\n", blob_id);
 
-	sprintf(randr_cmd, "xrandr --output DisplayPort-0 --set %s %d",
-		PROP_CTM, blob_id);
+	ret = set_output_blob_id(dpy, output,
+				 PROP_CTM, blob_id);
 
-	printf("# %s\n", randr_cmd);
-	system(randr_cmd);
+	drmModeDestroyPropertyBlob(drm_fd, blob_id);
 
-	ret = drmModeDestroyPropertyBlob(drm_fd, blob_id);
-	if (ret) {
-		printf("Failed to destroy blob. %d\n", ret);
-		return ret;
-	}
-
-	printf("Destroyed property blob with id %d\n", blob_id);
-
-	return 0;
+	return ret;
 }
 
 /*******************************************************************************
@@ -669,17 +698,19 @@ int main(int argc, char *const argv[])
 	}
 
 	if (degamma_changed) {
-		ret = set_gamma(drm_fd, degamma_coeffs, degamma_is_srgb, 1);
+		ret = set_gamma(dpy, output, drm_fd,
+				degamma_coeffs, degamma_is_srgb, 1);
 		if (ret)
 			goto done;
 	}
 	if (ctm_changed) {
-		ret = set_ctm(drm_fd, ctm_coeffs);
+		ret = set_ctm(dpy, output, drm_fd, ctm_coeffs);
 		if (ret)
 			goto done;
 	}
 	if (regamma_changed) {
-		ret = set_gamma(drm_fd, regamma_coeffs, regamma_is_srgb, 0);
+		ret = set_gamma(dpy, output, drm_fd,
+				regamma_coeffs, regamma_is_srgb, 0);
 		if (ret)
 			goto done;
 	}
