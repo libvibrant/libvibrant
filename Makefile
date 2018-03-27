@@ -2,7 +2,7 @@ CFLAGS=-g -Wall
 CC=gcc
 
 LDFLAGS=$(shell pkg-config --cflags libdrm)
-LDLIBS = $(shell pkg-config --libs libdrm) -lm
+LDLIBS = $(shell pkg-config --libs libdrm x11 xrandr) -lm
 
 # All sources
 SOURCES=demo.c

@@ -33,6 +33,9 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
+
 
 #define LUT_SIZE 4096
 
@@ -197,6 +200,36 @@ static void load_table(struct color3d *coeffs, int lut_size, double *exps)
 		coeffs[i].b = pow((double) i * 1.0 / (double) (lut_size - 1),
 				   1.0 / sanitized_exps[2]);
 	}
+}
+
+/**
+ * Find the output on the RandR screen resource by name.
+ *
+ * dpy: The X display
+ * res: The RandR screen resource
+ * name: The output name to search for.
+ *
+ * Return: The RROutput X-id if found, 0 (None) otherwise.
+ */
+static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
+				    const char *name)
+{
+	int i;
+	RROutput ret;
+	XRROutputInfo *output_info;
+
+	for (i = 0; i < res->noutput; i++) {
+		ret = res->outputs[i];
+		output_info = XRRGetOutputInfo (dpy, res, ret);
+
+		if (!strcmp(name, output_info->name)) {
+			XRRFreeOutputInfo(output_info);
+			return ret;
+		}
+
+		XRRFreeOutputInfo(output_info);
+	}
+	return 0;
 }
 
 /**
@@ -560,10 +593,13 @@ int main(int argc, char *const argv[])
 	struct color3d regamma_coeffs[LUT_SIZE];
 
 	int drm_fd;
-	int ret;
+	int ret = 0;
 
-	char cmd_enable_color_mgmt[] = 
-		"xrandr --output DisplayPort-0 --set use_color_mgmt 1";
+	Display *dpy;
+	Window root;
+	XRRScreenResources *res;
+	RROutput output;
+
 
 	/*
 	 * Parse arguments
@@ -617,27 +653,37 @@ int main(int argc, char *const argv[])
 		return -1;
 	}
 
-	/* Ensure non-legacy color management is enabled in xrandr */
-	printf("# %s\n", cmd_enable_color_mgmt);
-	system(cmd_enable_color_mgmt);
+	/* Open the default display and window*/
+	dpy = XOpenDisplay(NULL);
+	root = DefaultRootWindow(dpy);
+	res = XRRGetScreenResourcesCurrent(dpy, root);
+
+	output = find_output_by_name(dpy, res, "DisplayPort-0");
+	if (!output) {
+		printf("Cannot find output!\n");
+		goto done;
+	}
 
 	if (degamma_changed) {
 		ret = set_gamma(drm_fd, degamma_coeffs, degamma_is_srgb, 1);
 		if (ret)
-			return ret;
+			goto done;
 	}
 	if (ctm_changed) {
 		ret = set_ctm(drm_fd, ctm_coeffs);
 		if (ret)
-			return ret;
+			goto done;
 	}
 	if (regamma_changed) {
 		ret = set_gamma(drm_fd, regamma_coeffs, regamma_is_srgb, 0);
 		if (ret)
-			return ret;
+			goto done;
 	}
 
+done:
+	XRRFreeScreenResources(res);
+	XCloseDisplay(dpy);
 	close(drm_fd);
-	printf("Done!\n");
-	return 0;
+
+	return ret;
 }
