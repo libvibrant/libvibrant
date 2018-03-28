@@ -630,14 +630,14 @@ int main(int argc, char *const argv[])
 		}
 		else {
 			print_short_help();
-			return -1;
+			return 1;
 		}
 	}
 
 	/* Check that output is given */
 	if (!output_name) {
 		print_short_help();
-		return 0;
+		return 1;
 	}
 
 	/* Parse the input, and generate the intermediate coefficient arrays */
@@ -650,7 +650,7 @@ int main(int argc, char *const argv[])
 	/* Print help if input is not as expected */
 	if (!degamma_changed && !ctm_changed && !regamma_changed) {
 		print_short_help();
-		return 0;
+		return 1;
 	}
 
 	/* Open DRM device, and obtain file descriptor */
@@ -658,7 +658,7 @@ int main(int argc, char *const argv[])
 	if (drm_fd == -1) {
 		printf("No valid devices found\n");
 		printf("Did you run with admin privilege?\n");
-		return -1;
+		return 1;
 	}
 
 	/* Open the default X display and window, then obtain the RandR screen
@@ -673,6 +673,7 @@ int main(int argc, char *const argv[])
 	output = find_output_by_name(dpy, res, output_name);
 	if (!output) {
 		printf("Cannot find output %s.\n", output_name);
+		ret = 1;
 		goto done;
 	}
 
