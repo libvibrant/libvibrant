@@ -662,8 +662,14 @@ int main(int argc, char *const argv[])
 	}
 
 	/* Open the default X display and window, then obtain the RandR screen
-	 * resource. */
+	 * resource. Note that the DISPLAY environment variable must exist. */
 	dpy = XOpenDisplay(NULL);
+	if (!dpy) {
+		printf("No display specified, check the DISPLAY environment "
+		       "variable.\n");
+		return 1;
+	}
+
 	root = DefaultRootWindow(dpy);
 	res = XRRGetScreenResourcesCurrent(dpy, root);
 
