@@ -48,13 +48,16 @@ Optional arguments:
                 0-colors, to their maximum.
             f:f:f
                 A triple (3-element tuple) of doubles, delimited by colons.
+                They define an inverse-polynomial curve within the real range
+                [0, 1], for each r:g:b channel respectively.
+
                 For example, 1:0.5:1.11 will use the following gamma curves for
                 each channel:
-                    y_r: x_r ^ 1
-                    y_g: x_g ^ (1/0.5)
-                    y_b: x_b ^ (1/1.11)
+                    y_r = x_r ^ (1/1)
+                    y_g = x_g ^ (1/0.5)
+                    y_b = x_b ^ (1/1.11)
                 where y=f(x) represents the regamma curve, and x and y are
-                color vectors.
+                color vectors containing real values within range [0, 1]
 
     -h
         Show this message.
