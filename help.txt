@@ -1,0 +1,54 @@
+Usage: demo [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]
+
+Demo app for for creating DRM color/CTM blobs, then setting it via xrandr. Note
+that this requires updates to the amdpgu DDX driver for color management
+support.
+
+Optional arguments:
+
+    -d DEGAMMA_OPTS
+        Set degamma to the specified DEGAMMA_OPTS. Available options are:
+
+            srgb: SRGB degamma
+            linear: Linear degamma
+
+    -c CTM_OPTS 
+        Set the Color Transform Matrix (CTM) to the specified CTM_OPTS.
+        Available options are:
+
+            id:
+                Identity CTM
+            rg:
+                Red-to-green CTM
+            rb:
+                Red-to-blue CTM
+            f:f:f:f:f:f:f:f:f
+                A nonuple (9-element tuple) of doubles, delimited by colons,
+                row-representing a 3x3 matrix. For example, 1:0:1:0:0.5:0:0:0:1
+                will depict:
+                    |1  0  1|
+                    |0 0.5 0|
+                    |0  0  1|
+
+    -d REGAMMA_OPTS
+        Set regamma to the specified REGAMMA_OPTS. Available options are:
+
+            srgb:
+                SRGB regamma
+            min:
+                All-zero regamma curve.
+            max:
+                All maximum regamma curve. Maps everything, except for
+                0-colors, to their maximum.
+            f:f:f
+                A triple (3-element tuple) of doubles, delimited by colons.
+                For example, 1:0.5:1.11 will use the following gamma curves for
+                each channel:
+                    y_r: x_r ^ 1
+                    y_g: x_g ^ (1/0.5)
+                    y_b: x_b ^ (1/1.11)
+                where y=f(x) represents the regamma curve, and x and y are
+                color vectors.
+
+    -h
+        Show this message.

@@ -12,9 +12,12 @@ SOURCES=demo.c
 # All executables to be cleaned
 EXECUTABLES=demo
 
-demo: demo.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LDLIBS) -o $@
+demo: prebuild $(SOURCES)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCES) $(LDLIBS) -o $(EXECUTABLES)
 
-.PHONY: clean
+.PHONY: prebuild clean
+prebuild:
+	$(shell xxd -i < help.txt > help.xxd && echo ', 0' >> help.xxd)
+
 clean:
 	rm -f $(EXECUTABLES)

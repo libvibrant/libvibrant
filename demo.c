@@ -557,67 +557,30 @@ int parse_user_regamma(char *gamma_opt, struct color3d *coeffs, int *is_srgb)
 	return 1;
 }
 
-const char *SHORT_HELP_STR =
-"Usage: demo [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]\n";
+static char HELP_STR[] = { 
+	#include "help.xxd"
+};
 
-const char *HELP_STR =
-"Usage: demo [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]\n"
-"\n"
-"Demo app for for creating DRM color/CTM blobs, then setting it via xrandr. Note\n"
-"that this requires updates to the amdpgu DDX driver for color management\n"
-"support.\n"
-"\n"
-"Optional arguments:\n"
-"\n"
-"    -d DEGAMMA_OPTS\n"
-"        \n"
-"        Set degamma to the specified DEGAMMA_OPTS. Available options are:\n"
-"\n"
-"            srgb: SRGB degamma\n"
-"            linear: Linear degamma\n"
-"\n"
-"    -c CTM_OPTS \n"
-"\n"
-"        Set the Color Transform Matrix (CTM) to the specified CTM_OPTS.\n"
-"        Available options are:\n"
-"\n"
-"            id:\n"
-"                Identity CTM\n"
-"            rg:\n"
-"                Red-to-green CTM\n"
-"            rb:\n"
-"                Red-to-blue CTM\n"
-"            f:f:f:f:f:f:f:f:f\n"
-"                A nonuple (9-element tuple) of doubles, delimited by colons,\n"
-"                row-representing a 3x3 matrix. For example, 1:0:1:0:0.5:0:0:0:1\n"
-"                will depict:\n"
-"                    |1  0  1|\n"
-"                    |0 0.5 0|\n"
-"                    |0  0  1|\n"
-"\n"
-"    -d REGAMMA_OPTS\n"
-"\n"
-"        Set regamma to the specified REGAMMA_OPTS. Available options are:\n"
-"\n"
-"            srgb:\n"
-"                SRGB regamma\n"
-"            min:\n"
-"                All-zero regamma curve.\n"
-"            max:\n"
-"                All maximum regamma curve. Maps everything, except for\n"
-"                0-colors, to their maximum.\n"
-"            f:f:f\n"
-"                A triple (3-element tuple) of doubles, delimited by colons.\n"
-"                For example, 1:0.5:1.11 will use the following gamma curves for\n"
-"                each channel:\n"
-"                    y_r: x_r ^ 1\n"
-"                    y_g: x_g ^ (1/0.5)\n"
-"                    y_b: x_b ^ (1/1.11)\n"
-"                where y=f(x) represents the regamma curve, and x and y are color\n"
-"                vectors.\n"
-"\n"
-"    -h\n"
-"        Show this message.\n";
+static void print_short_help()
+{
+	/* Just get first line, up to the first new line.*/
+	uint32_t len = strlen(HELP_STR);
+	char *short_help;
+
+	int i;
+	for (i = 0; i < len; i++) {
+		if (HELP_STR[i] == '\n')
+			break;
+	}
+
+	short_help = malloc(sizeof(char) * i);
+	strncpy(short_help, HELP_STR, i);
+
+	printf("%s\n", short_help);
+	free(short_help);
+}
+
+
 
 int main(int argc, char *const argv[])
 {
@@ -663,7 +626,7 @@ int main(int argc, char *const argv[])
 			return 0;
 		}
 		else {
-			printf("%s", SHORT_HELP_STR);
+			print_short_help();
 			return -1;
 		}
 	}
@@ -677,7 +640,7 @@ int main(int argc, char *const argv[])
 
 	/* Print help if input is not as expected */
 	if (!degamma_changed && !ctm_changed && !regamma_changed) {
-		printf("%s", SHORT_HELP_STR);
+		print_short_help();
 		return 0;
 	}
 
