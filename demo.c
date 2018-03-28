@@ -609,18 +609,21 @@ int main(int argc, char *const argv[])
 	char *degamma_opt = NULL;
 	char *ctm_opt = NULL;
 	char *regamma_opt = NULL;
+	char *output_name = NULL;
 
 	int degamma_changed, degamma_is_srgb;
 	int ctm_changed;
 	int regamma_changed, regamma_is_srgb;
 
-	while ((opt = getopt(argc, argv, "hd:c:r:")) != -1) {
+	while ((opt = getopt(argc, argv, "ho:d:c:r:")) != -1) {
 		if (opt == 'd')
 			degamma_opt = optarg;
 		else if (opt == 'c')
 			ctm_opt = optarg;
 		else if (opt == 'r')
 			regamma_opt = optarg;
+		else if (opt == 'o')
+			output_name = optarg;
 		else if (opt == 'h') {
 			printf("%s", HELP_STR);
 			return 0;
@@ -629,6 +632,12 @@ int main(int argc, char *const argv[])
 			print_short_help();
 			return -1;
 		}
+	}
+
+	/* Check that output is given */
+	if (!output_name) {
+		print_short_help();
+		return 0;
 	}
 
 	/* Parse the input, and generate the intermediate coefficient arrays */
@@ -661,9 +670,9 @@ int main(int argc, char *const argv[])
 	/* RandR needs to know which output we're setting the property on.
 	 * Since we only have a name to work with, find the RROutput using the
 	 * name. */
-	output = find_output_by_name(dpy, res, "DisplayPort-0");
+	output = find_output_by_name(dpy, res, output_name);
 	if (!output) {
-		printf("Cannot find output!\n");
+		printf("Cannot find output %s.\n", output_name);
 		goto done;
 	}
 

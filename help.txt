@@ -1,8 +1,14 @@
-Usage: demo [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]
+Usage: demo -o OUTPUT_NAME [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]
 
 Demo app for for creating DRM color/CTM blobs, then setting it via xrandr. Note
 that this requires updates to the amdpgu DDX driver for color management
 support.
+
+Mandatory arguments:
+
+    -o OUTPUT_NAME
+        The output name, as listed in xrandr
+
 
 Optional arguments:
 
