@@ -294,6 +294,8 @@ static int set_output_blob_id(Display *dpy, RROutput output,
  * procedures, a flag is used to determine which one is set. Also note the
  * special case of setting SRGB gamma, explained further below.
  *
+ * @dpy: The X display
+ * @output: The output on which to set de/regamma on.
  * @drm_fd: The file descriptor of the DRM interface.
  * @coeffs: Coefficients used to create the DRM color LUT blob.
  * @is_srgb: True if SRGB gamma is being programmed. This is a special case,
