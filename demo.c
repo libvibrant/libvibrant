@@ -252,9 +252,9 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
  *       the given connector
  *     - Success otherwise.
  */
-static int set_output_blob_id(Display *dpy, RROutput output,
-			      const char *prop_name,
-			      uint32_t blob_id)
+static int set_output_blob(Display *dpy, RROutput output,
+			   const char *prop_name, int blob_format,
+			   void *blob_data, size_t blob_bytes)
 {
 	Atom prop_atom;
 	XRRPropertyInfo *prop_info;
@@ -273,24 +273,18 @@ static int set_output_blob_id(Display *dpy, RROutput output,
 		return BadName;  /* Property not found */
 	}
 
-	/* Change the property, then call XSync to apply it. 
-	 *
-	 * Gotcha: Do not release the DRM blob attached to the blob ID before
-	 * the property change is synced! Else the blob will be freed in kernel
-	 * before it can be set.
-	 */
-	printf("Set property '%s' to %d\n", prop_name, blob_id);
+	/* Change the property, then call XSync to apply it. */
+
 	XRRChangeOutputProperty(dpy, output, prop_atom,
-				XA_INTEGER, 32, PropModeReplace,
-				(unsigned char *) &blob_id, 1);
+				XA_INTEGER, blob_format, PropModeReplace,
+				blob_data, blob_bytes / (blob_format >> 3));
 	XSync(dpy, 0);
 
 	return Success;
 }
 
 /**
- * Create a DRM color LUT blob using the given coefficients, and set the
- * output's CRTC to use it. Since setting degamma and regamma follows similar
+ * Set the de/regamma LUT. Since setting degamma and regamma follows similar
  * procedures, a flag is used to determine which one is set. Also note the
  * special case of setting SRGB gamma, explained further below.
  *
@@ -308,38 +302,26 @@ static int set_gamma(Display *dpy, RROutput output, int drm_fd,
 		     struct color3d *coeffs, int is_srgb, int is_degamma)
 {
 	struct _drm_color_lut lut[LUT_SIZE];
-	uint32_t blob_id = 0;
-
+	int zero = 0;
 	int ret = 0;
+	char *prop_name = is_degamma ? PROP_DEGAMMA : PROP_GAMMA;
 
 	if (!is_srgb) {
 		/* Using LUT */
-		coeffs_to_lut(coeffs, lut, LUT_SIZE);
 		size_t size = sizeof(struct _drm_color_lut) * LUT_SIZE;
-		ret = drmModeCreatePropertyBlob(drm_fd, lut, size, &blob_id);
-		if (ret) {
-			printf("Failed to create blob. %d\n", ret);
-			return ret;
-		}
+		coeffs_to_lut(coeffs, lut, LUT_SIZE);
+		ret = set_output_blob(dpy, output, prop_name, 16, lut, size);
+		if (ret)
+			printf("Failed to set blob property. %d\n", ret);
+		return ret;
 	}
 	/* Else:
-	 * In the special case of SRGB, don't create the blob. We just need to
-	 * set a NULL blob id (0) */
-
-	ret = set_output_blob_id(dpy, output,
-				 is_degamma ? PROP_DEGAMMA : PROP_GAMMA,
-				 blob_id);
-
-	if (blob_id) {
-		/* Make sure to destroy the blob if one was created.
-		 *
-		 * Note that we can destroy the blob immediately after it's set.
-		 * The blob property is ref-counted within the kernel, and will
-		 * be freed once the CRTC it's attached on is destroyed.
-		 */
-		drmModeDestroyPropertyBlob(drm_fd, blob_id);
-	}
-
+	 * In the special case of SRGB, set a "NULL" value. DDX will default
+	 * to SRGB.
+	 */
+	ret = set_output_blob(dpy, output, prop_name, 16, &zero, 2);
+	if (ret)
+		printf("Failed to set SRGB. %d\n", ret);
 	return ret;
 }
 
@@ -353,26 +335,17 @@ static int set_gamma(Display *dpy, RROutput output, int drm_fd,
  */
 static int set_ctm(Display *dpy, RROutput output, int drm_fd, double *coeffs)
 {
+	size_t blob_size = sizeof(struct _drm_color_ctm);
 	struct _drm_color_ctm ctm;
-	uint32_t blob_id = 0;
-	size_t blob_size;
 
 	int ret;
 
 	coeffs_to_ctm(coeffs, &ctm);
-	blob_size = sizeof(ctm);
 
-	ret = drmModeCreatePropertyBlob(drm_fd, &ctm, blob_size, &blob_id);
-	if (ret) {
-		printf("Failed to create blob. %d\n", ret);
-		return ret;
-	}
+	ret = set_output_blob(dpy, output, PROP_CTM, 16, &ctm, blob_size);
 
-	ret = set_output_blob_id(dpy, output,
-				 PROP_CTM, blob_id);
-
-	drmModeDestroyPropertyBlob(drm_fd, blob_id);
-
+	if (ret)
+		printf("Failed to set CTM. %d\n", ret);
 	return ret;
 }
 
