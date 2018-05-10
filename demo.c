@@ -226,7 +226,8 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
  * @dpy: The X Display
  * @output: RandR output to set the property on
  * @prop_name: String name of the property.
- * @blob_id: The new blob_id to set this blob property to.
+ * @blob_data: The data of the property blob.
+ * @blob_bytes: Size of the data, in bytes.
  *
  * Return: X-defined return codes:
  *     - BadAtom if the given name string doesn't exist.
@@ -235,7 +236,7 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
  *     - Success otherwise.
  */
 static int set_output_blob(Display *dpy, RROutput output,
-			   const char *prop_name, int blob_format,
+			   const char *prop_name,
 			   void *blob_data, size_t blob_bytes)
 {
 	Atom prop_atom;
@@ -255,11 +256,20 @@ static int set_output_blob(Display *dpy, RROutput output,
 		return BadName;  /* Property not found */
 	}
 
-	/* Change the property, then call XSync to apply it. */
-
+	/* Change the property 
+	 *
+	 * Due to some restrictions in RandR, array properties of 32 or 64 bit
+	 * formats are incorrectly parsed within the server. We'll settle with
+	 * 16 bit for now.
+	 *
+	 * Using 16 bit means that the length of the array we report must make
+	 * sense. We calculate that by taking in the size of the array in
+	 * bytes, then dividing that by 2.
+	 */
 	XRRChangeOutputProperty(dpy, output, prop_atom,
-				XA_INTEGER, blob_format, PropModeReplace,
-				blob_data, blob_bytes / (blob_format >> 3));
+				XA_INTEGER, 16, PropModeReplace,
+				blob_data, blob_bytes >> 1);
+	/* Call XSync to apply it. */
 	XSync(dpy, 0);
 
 	return Success;
@@ -292,7 +302,7 @@ static int set_gamma(Display *dpy, RROutput output, int drm_fd,
 		/* Using LUT */
 		size_t size = sizeof(struct drm_color_lut) * LUT_SIZE;
 		coeffs_to_lut(coeffs, lut, LUT_SIZE);
-		ret = set_output_blob(dpy, output, prop_name, 16, lut, size);
+		ret = set_output_blob(dpy, output, prop_name, lut, size);
 		if (ret)
 			printf("Failed to set blob property. %d\n", ret);
 		return ret;
@@ -301,7 +311,7 @@ static int set_gamma(Display *dpy, RROutput output, int drm_fd,
 	 * In the special case of SRGB, set a "NULL" value. DDX will default
 	 * to SRGB.
 	 */
-	ret = set_output_blob(dpy, output, prop_name, 16, &zero, 2);
+	ret = set_output_blob(dpy, output, prop_name, &zero, 2);
 	if (ret)
 		printf("Failed to set SRGB. %d\n", ret);
 	return ret;
@@ -324,7 +334,7 @@ static int set_ctm(Display *dpy, RROutput output, int drm_fd, double *coeffs)
 
 	coeffs_to_ctm(coeffs, &ctm);
 
-	ret = set_output_blob(dpy, output, PROP_CTM, 16, &ctm, blob_size);
+	ret = set_output_blob(dpy, output, PROP_CTM, &ctm, blob_size);
 
 	if (ret)
 		printf("Failed to set CTM. %d\n", ret);
