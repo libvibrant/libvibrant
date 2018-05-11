@@ -23,7 +23,6 @@
  *
  */
 
-#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,46 +55,6 @@ struct color3d {
 /*******************************************************************************
  * Helper functions
  */
-
-static int __fd_is_device(int fd, const char *expect)
-{
-	char name[5] = "";
-	drm_version_t version = {0};
-
-	version.name_len = 4;
-	version.name = name;
-	if (drmIoctl(fd, DRM_IOCTL_VERSION, &version))
-		return 0;
-
-	return strcmp(expect, version.name) == 0;
-}
-
-static int open_drm_device()
-{
-	char *base = "/dev/dri/card";
-	int i = 0;
-	for (i = 0; i < 16; i++) {
-		char name[80];
-		int fd;
-
-		sprintf(name, "%s%u", base, i);
-		printf("Opening %s... ", name);
-		fd = open(name, O_RDWR);
-		if (fd == -1) {
-			printf("Failed.\n");
-			continue;
-		}
-
-		if (__fd_is_device(fd, "amdg")){
-			printf("Success!\n");
-			return fd;
-		}
-
-		printf("Not an amdgpu device.\n");
-		close(fd);
-	}
-	return -1;
-}
 
 /**
  * Translate coefficients to a color LUT format that DRM accepts.
@@ -282,7 +241,6 @@ static int set_output_blob(Display *dpy, RROutput output,
  *
  * @dpy: The X display
  * @output: The output on which to set de/regamma on.
- * @drm_fd: The file descriptor of the DRM interface.
  * @coeffs: Coefficients used to create the DRM color LUT blob.
  * @is_srgb: True if SRGB gamma is being programmed. This is a special case,
  *           since amdgpu DC defaults to SRGB when no DRM blob (i.e. NULL) is
@@ -290,8 +248,8 @@ static int set_output_blob(Display *dpy, RROutput output,
  *           the blob id to 0)
  * @is_degamma: True if degamma is being set. Set regamma otherwise.
  */
-static int set_gamma(Display *dpy, RROutput output, int drm_fd,
-		     struct color3d *coeffs, int is_srgb, int is_degamma)
+static int set_gamma(Display *dpy, RROutput output, struct color3d *coeffs,
+		     int is_srgb, int is_degamma)
 {
 	struct drm_color_lut lut[LUT_SIZE];
 	int zero = 0;
@@ -325,7 +283,7 @@ static int set_gamma(Display *dpy, RROutput output, int drm_fd,
  * blob being created. See set_gamma() for a description of the steps being
  * done.
  */
-static int set_ctm(Display *dpy, RROutput output, int drm_fd, double *coeffs)
+static int set_ctm(Display *dpy, RROutput output, double *coeffs)
 {
 	size_t blob_size = sizeof(struct drm_color_ctm);
 	struct drm_color_ctm ctm;
@@ -551,15 +509,14 @@ static void print_short_help()
 
 int main(int argc, char *const argv[])
 {
-	/* These coefficient arrays store an intermediary form of the DRM blob
-	 * to be set. They will be translated into the format that DRM expects
-	 * when they are given to libdrm to be created within the kernel.
+	/* These coefficient arrays store an intermediary form of the property 
+	 * blob to be set. They will be translated into the format that DDX
+	 * driver expects when the request is sent to XRandR.
 	 */
 	struct color3d degamma_coeffs[LUT_SIZE];
 	double ctm_coeffs[9];
 	struct color3d regamma_coeffs[LUT_SIZE];
 
-	int drm_fd;
 	int ret = 0;
 
 	/* Things needed by xrandr to change output properties */
@@ -620,14 +577,6 @@ int main(int argc, char *const argv[])
 		return 1;
 	}
 
-	/* Open DRM device, and obtain file descriptor */
-	drm_fd = open_drm_device();
-	if (drm_fd == -1) {
-		printf("No valid devices found\n");
-		printf("Did you run with admin privilege?\n");
-		return 1;
-	}
-
 	/* Open the default X display and window, then obtain the RandR screen
 	 * resource. Note that the DISPLAY environment variable must exist. */
 	dpy = XOpenDisplay(NULL);
@@ -653,19 +602,19 @@ int main(int argc, char *const argv[])
 	/* Set the properties as parsed. The set_* functions will also
 	 * translate the coefficients. */
 	if (degamma_changed) {
-		ret = set_gamma(dpy, output, drm_fd,
-				degamma_coeffs, degamma_is_srgb, 1);
+		ret = set_gamma(dpy, output, degamma_coeffs, degamma_is_srgb,
+				1);
 		if (ret)
 			goto done;
 	}
 	if (ctm_changed) {
-		ret = set_ctm(dpy, output, drm_fd, ctm_coeffs);
+		ret = set_ctm(dpy, output, ctm_coeffs);
 		if (ret)
 			goto done;
 	}
 	if (regamma_changed) {
-		ret = set_gamma(dpy, output, drm_fd,
-				regamma_coeffs, regamma_is_srgb, 0);
+		ret = set_gamma(dpy, output, regamma_coeffs, regamma_is_srgb,
+				0);
 		if (ret)
 			goto done;
 	}
@@ -674,7 +623,6 @@ done:
 	/* Ensure proper cleanup */
 	XRRFreeScreenResources(res);
 	XCloseDisplay(dpy);
-	close(drm_fd);
 
 	return ret;
 }
