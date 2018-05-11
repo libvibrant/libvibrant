@@ -26,11 +26,9 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -49,17 +47,17 @@
  */
 struct _drm_color_ctm {
 	/* Transformation matrix in S31.32 format. */
-	__s64 matrix[9];
+	int64_t matrix[9];
 };
 
 struct _drm_color_lut {
 	/*
 	 * Data is U0.16 fixed point format.
 	 */
-	__u16 red;
-	__u16 green;
-	__u16 blue;
-	__u16 reserved;
+	uint16_t red;
+	uint16_t green;
+	uint16_t blue;
+	uint16_t reserved;
 };
 
 /* Struct to make constructing luts easier. */
@@ -86,7 +84,7 @@ static void coeffs_to_lut(struct color3d *coeffs,
 			  int lut_size)
 {
 	int i;
-	__u16 max_value = 0xFFFF;
+	uint16_t max_value = 0xFFFF;
 
 	for (i = 0; i < lut_size; i++) {
 		lut[i].red = coeffs[i].r * max_value;
