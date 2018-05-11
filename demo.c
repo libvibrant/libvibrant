@@ -43,6 +43,24 @@
 #define PROP_DEGAMMA "DEGAMMA_LUT"
 #define PROP_CTM "CTM"
 
+/**
+ * The below data structures are identical to the ones used by DRM. They are
+ * here to help us structure the data being passed to the kernel.
+ */
+struct _drm_color_ctm {
+	/* Transformation matrix in S31.32 format. */
+	__s64 matrix[9];
+};
+
+struct _drm_color_lut {
+	/*
+	 * Data is U0.16 fixed point format.
+	 */
+	__u16 red;
+	__u16 green;
+	__u16 blue;
+	__u16 reserved;
+};
 
 /* Struct to make constructing luts easier. */
 struct color3d {
@@ -64,7 +82,7 @@ struct color3d {
  * @lut_size: Number of entries in the LUT.
  */
 static void coeffs_to_lut(struct color3d *coeffs,
-			  struct drm_color_lut *lut,
+			  struct _drm_color_lut *lut,
 			  int lut_size)
 {
 	int i;
@@ -88,7 +106,7 @@ static void coeffs_to_lut(struct color3d *coeffs,
  *       placed here.
  */
 static void coeffs_to_ctm(double *coeffs,
-			  struct drm_color_ctm *ctm)
+			  struct _drm_color_ctm *ctm)
 {
 	int i;
 	for (i = 0; i < 9; i++) {
@@ -251,14 +269,14 @@ static int set_output_blob(Display *dpy, RROutput output,
 static int set_gamma(Display *dpy, RROutput output, struct color3d *coeffs,
 		     int is_srgb, int is_degamma)
 {
-	struct drm_color_lut lut[LUT_SIZE];
+	struct _drm_color_lut lut[LUT_SIZE];
 	int zero = 0;
 	int ret = 0;
 	char *prop_name = is_degamma ? PROP_DEGAMMA : PROP_GAMMA;
 
 	if (!is_srgb) {
 		/* Using LUT */
-		size_t size = sizeof(struct drm_color_lut) * LUT_SIZE;
+		size_t size = sizeof(struct _drm_color_lut) * LUT_SIZE;
 		coeffs_to_lut(coeffs, lut, LUT_SIZE);
 		ret = set_output_blob(dpy, output, prop_name, lut, size);
 		if (ret)
@@ -285,8 +303,8 @@ static int set_gamma(Display *dpy, RROutput output, struct color3d *coeffs,
  */
 static int set_ctm(Display *dpy, RROutput output, double *coeffs)
 {
-	size_t blob_size = sizeof(struct drm_color_ctm);
-	struct drm_color_ctm ctm;
+	size_t blob_size = sizeof(struct _drm_color_ctm);
+	struct _drm_color_ctm ctm;
 
 	int ret;
 
