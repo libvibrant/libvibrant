@@ -301,24 +301,46 @@ static int set_gamma(Display *dpy, RROutput output, struct color3d *coeffs,
 }
 
 /**
- * Create a DRM color LUT blob using the given coefficients, and set the
- * output's CRTC to use it.
- *
- * The process is similar to set_gamma(). The only difference is the type of
- * blob being created. See set_gamma() for a description of the steps being
- * done.
+ * Create a DRM color transform matrix using the given coefficients, and set
+ * the output's CRTC to use it.
  */
 static int set_ctm(Display *dpy, RROutput output, double *coeffs)
 {
 	size_t blob_size = sizeof(struct _drm_color_ctm);
 	struct _drm_color_ctm ctm;
+	long padded_ctm[18];
 
-	int ret;
+	int i, ret;
 
 	coeffs_to_ctm(coeffs, &ctm);
 
-	ret = set_output_blob(dpy, output, PROP_CTM, &ctm, blob_size,
-			      FORMAT_16_BIT);
+	/* Workaround:
+	 *
+	 * RandR currently uses long types for 32-bit integer format. However,
+	 * 64-bit systems will use 64-bits for long, causing data corruption
+	 * once RandR parses the data. Therefore, pad the blob_data to be long-
+	 * sized. This will work regardless of how long is defined (as long as
+	 * it's at least 32-bits).
+	 *
+	 * Note that we have a 32-bit format restriction; we have to interpret
+	 * each S31.32 fixed point number within the CTM in two parts: The
+	 * whole part (S31), and the fractional part (.32). They're then stored
+	 * (as separate parts) into a long-typed array. Of course, This problem
+	 * wouldn't exist if xserver accepted 64-bit formats.
+	 *
+	 * A gotcha here is the endianness of the S31.32 values. The whole part
+	 * will either come before or after the fractional part. (before in
+	 * big-endian format, and after in small-endian format). We could avoid
+	 * dealing with this by doing a straight memory copy, but we have to
+	 * ensure that each 32-bit element is padded to long-size in the
+	 * process.
+	 */
+	for (i = 0; i < 18; i++)
+		/* Think of this as a padded 'memcpy()'. */
+		padded_ctm[i] = ((uint32_t*)ctm.matrix)[i];
+
+	ret = set_output_blob(dpy, output, PROP_CTM, &padded_ctm,
+			      blob_size, FORMAT_32_BIT);
 
 	if (ret)
 		printf("Failed to set CTM. %d\n", ret);
