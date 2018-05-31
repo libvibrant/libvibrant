@@ -194,6 +194,11 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
 	return 0;
 }
 
+enum randr_format {
+	FORMAT_16_BIT = 16,
+	FORMAT_32_BIT = 32,
+};
+
 /**
  * Set a DRM blob property on the given output. It calls XSync at the end to
  * flush the change request so that it applies.
@@ -203,6 +208,7 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
  * @prop_name: String name of the property.
  * @blob_data: The data of the property blob.
  * @blob_bytes: Size of the data, in bytes.
+ * @format: Format of each element within blob_data.
  *
  * Return: X-defined return codes:
  *     - BadAtom if the given name string doesn't exist.
@@ -211,8 +217,8 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
  *     - Success otherwise.
  */
 static int set_output_blob(Display *dpy, RROutput output,
-			   const char *prop_name,
-			   void *blob_data, size_t blob_bytes)
+			   const char *prop_name, void *blob_data,
+			   size_t blob_bytes, enum randr_format format)
 {
 	Atom prop_atom;
 	XRRPropertyInfo *prop_info;
@@ -233,17 +239,19 @@ static int set_output_blob(Display *dpy, RROutput output,
 
 	/* Change the property 
 	 *
-	 * Due to some restrictions in RandR, array properties of 32 or 64 bit
-	 * formats are incorrectly parsed within the server. We'll settle with
-	 * 16 bit for now.
+	 * Due to some restrictions in RandR, array properties of 32-bit format
+	 * must be of type 'long'. See set_ctm() for details.
 	 *
-	 * Using 16 bit means that the length of the array we report must make
-	 * sense. We calculate that by taking in the size of the array in
-	 * bytes, then dividing that by 2.
+	 * To get the number of elements within blob_data, we take its size in
+	 * bytes, divided by the size of one of it's elements in bytes:
+	 *
+	 * blob_length = blob_bytes / (element_bytes)
+	 *             = blob_bytes / (format / 8)
+	 *             = blob_bytes / (format >> 3)
 	 */
 	XRRChangeOutputProperty(dpy, output, prop_atom,
-				XA_INTEGER, 16, PropModeReplace,
-				blob_data, blob_bytes >> 1);
+				XA_INTEGER, format, PropModeReplace,
+				blob_data, blob_bytes / (format >> 3));
 	/* Call XSync to apply it. */
 	XSync(dpy, 0);
 
@@ -276,7 +284,8 @@ static int set_gamma(Display *dpy, RROutput output, struct color3d *coeffs,
 		/* Using LUT */
 		size_t size = sizeof(struct _drm_color_lut) * LUT_SIZE;
 		coeffs_to_lut(coeffs, lut, LUT_SIZE);
-		ret = set_output_blob(dpy, output, prop_name, lut, size);
+		ret = set_output_blob(dpy, output, prop_name, lut, size,
+				      FORMAT_16_BIT);
 		if (ret)
 			printf("Failed to set blob property. %d\n", ret);
 		return ret;
@@ -285,7 +294,7 @@ static int set_gamma(Display *dpy, RROutput output, struct color3d *coeffs,
 	 * In the special case of SRGB, set a "NULL" value. DDX will default
 	 * to SRGB.
 	 */
-	ret = set_output_blob(dpy, output, prop_name, &zero, 2);
+	ret = set_output_blob(dpy, output, prop_name, &zero, 2, FORMAT_16_BIT);
 	if (ret)
 		printf("Failed to set SRGB. %d\n", ret);
 	return ret;
@@ -308,7 +317,8 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs)
 
 	coeffs_to_ctm(coeffs, &ctm);
 
-	ret = set_output_blob(dpy, output, PROP_CTM, &ctm, blob_size);
+	ret = set_output_blob(dpy, output, PROP_CTM, &ctm, blob_size,
+			      FORMAT_16_BIT);
 
 	if (ret)
 		printf("Failed to set CTM. %d\n", ret);
