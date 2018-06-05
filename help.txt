@@ -1,4 +1,4 @@
-Usage: cmdemo -o OUTPUT_NAME [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]
+Usage: cmdemo -o OUTPUT_NAME [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h] [-v]
 
 Demo app for setting non-legacy color management via libXrandr. Note that this
 requires color management support from the amdgpu DDX driver.
@@ -57,6 +57,9 @@ Optional arguments:
                     y_b = x_b ^ (1/1.11)
                 where y=f(x) represents the regamma curve, and x and y are
                 color vectors containing real values within range [0, 1]
+
+    -v
+        Print version.
 
     -h
         Show this message.

@@ -34,6 +34,7 @@
 #include <X11/Xatom.h>
 #include <X11/extensions/Xrandr.h>
 
+#define VERSION_STRING "alpha-v3"
 
 #define LUT_SIZE 4096
 
@@ -553,6 +554,11 @@ static void print_short_help()
 	free(short_help);
 }
 
+static void print_version()
+{
+	printf("%s\n", VERSION_STRING);
+}
+
 
 
 int main(int argc, char *const argv[])
@@ -587,8 +593,12 @@ int main(int argc, char *const argv[])
 	int ctm_changed;
 	int regamma_changed, regamma_is_srgb;
 
-	while ((opt = getopt(argc, argv, "ho:d:c:r:")) != -1) {
-		if (opt == 'd')
+	while ((opt = getopt(argc, argv, "vho:d:c:r:")) != -1) {
+		if (opt == 'v') {
+			print_version();
+			return 0;
+		}
+		else if (opt == 'd')
 			degamma_opt = optarg;
 		else if (opt == 'c')
 			ctm_opt = optarg;
