@@ -1,7 +1,7 @@
-Usage: demo -o OUTPUT_NAME [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]
+Usage: cmdemo -o OUTPUT_NAME [-d DEGAMMA_OPTS] [-c CTM_OPTS] [-r REGAMMA_OPTS] [-h]
 
 Demo app for setting non-legacy color management via libXrandr. Note that this
-requires updates to the amdpgu DDX driver for color management support.
+requires color management support from the amdgpu DDX driver.
 
 Mandatory arguments:
 

@@ -10,7 +10,7 @@ LDLIBS = $(shell pkg-config --libs libdrm x11 xrandr) -lm
 # All sources
 SOURCES=demo.c
 # All executables to be cleaned
-EXECUTABLES=demo
+EXECUTABLES=cmdemo
 
 demo: prebuild $(SOURCES)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(SOURCES) $(LDLIBS) -o $(EXECUTABLES)
