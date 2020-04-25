@@ -221,14 +221,7 @@ void saturation_to_ctm(double saturation, double *coeffs) {
         temp[i] = coeff + (i % 4 == 0 ? saturation : 0);
     }
 
-
-    printf("Using custom CTM:\n");
-    printf("    %2.4f:%2.4f:%2.4f\n", temp[0], temp[1], temp[2]);
-    printf("    %2.4f:%2.4f:%2.4f\n", temp[3], temp[4], temp[5]);
-    printf("    %2.4f:%2.4f:%2.4f\n", temp[6], temp[7], temp[8]);
-
     memcpy(coeffs, temp, sizeof(double) * 9);
-    free(temp);
 }
 
 int main(int argc, char *const argv[]) {
@@ -259,6 +252,11 @@ int main(int argc, char *const argv[]) {
     char *output_name = argv[2];
 
     saturation_to_ctm(sat_opt, ctm_coeffs);  // convert saturation to ctm coefficients
+
+    printf("Calculated CTM:\n");
+    printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1], ctm_coeffs[2]);
+    printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4], ctm_coeffs[5]);
+    printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7], ctm_coeffs[8]);
 
     /* Open the default X display and window, then obtain the RandR screen
      * resource. Note that the DISPLAY environment variable must exist. */
