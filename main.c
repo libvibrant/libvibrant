@@ -246,7 +246,7 @@ int main(int argc, char *const argv[]) {
      * Parse arguments
      */
     if (argc < 3) {
-        printf("Usage: %s SATURATION OUTPUT", argv[0]);
+        printf("Usage: %s SATURATION OUTPUT\n", argv[0]);
         return 1;
     }
 
@@ -257,7 +257,7 @@ int main(int argc, char *const argv[]) {
     double saturation = strtod(saturation_opt, &text);
 
     if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
-        printf("SATURATION value must be greater than or equal to 0.0 and less than or equal to 4.0");
+        printf("SATURATION value must be greater than or equal to 0.0 and less than or equal to 4.0.\n");
         return 1;
     }
 
@@ -272,8 +272,7 @@ int main(int argc, char *const argv[]) {
      * resource. Note that the DISPLAY environment variable must exist. */
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
-        printf("No display specified, check the DISPLAY environment "
-               "variable.\n");
+        printf("No display specified, check the DISPLAY environment variable.\n");
         return 1;
     }
 
