@@ -9,3 +9,5 @@ find_package(X11 REQUIRED)
 add_executable(vibrantX main.c)
 
 target_link_libraries(vibrantX drm X11 Xrandr)
+
+install(TARGETS vibrantX DESTINATION bin)
