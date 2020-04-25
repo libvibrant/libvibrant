@@ -246,7 +246,7 @@ int main(int argc, char *const argv[]) {
      * Parse arguments
      */
     if (argc < 3) {
-        printf("Usage: %s SATURATION DISPLAY", argv[0]);
+        printf("Usage: %s SATURATION OUTPUT", argv[0]);
         return 1;
     }
 
