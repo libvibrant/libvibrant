@@ -258,10 +258,18 @@ int main(int argc, char *const argv[]) {
         return 1;
     }
 
-    double sat_opt = strtod(argv[1], NULL);
+    char *saturation_opt = argv[1];
     char *output_name = argv[2];
 
-    saturation_to_ctm(sat_opt, ctm_coeffs);  // convert saturation to ctm coefficients
+    char *text;
+    double saturation = strtod(saturation_opt, &text);
+
+    if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
+        printf("SATURATION value must be greater than or equal to 0.0 and less than or equal to 4.0");
+        return 1;
+    }
+
+    saturation_to_ctm(saturation, ctm_coeffs);  // convert saturation to ctm coefficients
 
     printf("Calculated CTM:\n");
     printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1], ctm_coeffs[2]);
