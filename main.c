@@ -57,9 +57,6 @@
 #define RANDR_FORMAT 32u
 #define PROP_CTM "CTM"
 
-/*******************************************************************************
- * Helper functions
- */
 
 /**
  * Translate coefficients to a color CTM format that DRM accepts.
@@ -113,7 +110,6 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
     }
     return 0;
 }
-
 
 /**
  * Set a DRM blob property on the given output. It calls XSync at the end to
@@ -217,10 +213,6 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
         printf("Failed to set CTM. %d\n", ret);
     return ret;
 }
-
-/*******************************************************************************
- * main function, and functions to assist in parsing input.
- */
 
 void saturation_to_ctm(double saturation, double *coeffs) {
     double temp[9];
