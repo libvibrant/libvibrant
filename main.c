@@ -61,12 +61,10 @@
 /**
  * Translate coefficients to a color CTM format that DRM accepts.
  *
- * DRM requres the CTM to be in signed-magnitude, not 2's complement.
- * It is also in 31.32 fixed-point format.
- *
- * @coeffs: Input coefficients
- * @ctm: DRM CTM struct, used to create the blob. The translated values will be
- *       placed here.
+ * DRM requires the CTM to be in signed-magnitude, not 2's complement.
+ * It is also in 32.32 fixed-point format.
+ * @param coeffs Input coefficients
+ * @param ctm DRM CTM struct, used to create the blob. The translated values will be placed here.
  */
 static void coeffs_to_ctm(const double *coeffs,
                           struct drm_color_ctm *ctm) {
@@ -85,11 +83,10 @@ static void coeffs_to_ctm(const double *coeffs,
 /**
  * Find the output on the RandR screen resource by name.
  *
- * dpy: The X display
- * res: The RandR screen resource
- * name: The output name to search for.
- *
- * Return: The RROutput X-id if found, 0 (None) otherwise.
+ * @param dpy The X Display
+ * @param res The RandR screen resource
+ * @param name The output name to search for
+ * @return The RandR-Output X-ID if found, 0 (None) otherwise
  */
 static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
                                     const char *name) {
@@ -112,21 +109,19 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
 }
 
 /**
- * Set a DRM blob property on the given output. It calls XSync at the end to
- * flush the change request so that it applies.
+ * Set a DRM blob property on the given output. It calls XSync at the end to flush the change request so that it applies.
  *
- * @dpy: The X Display
- * @output: RandR output to set the property on
- * @prop_name: String name of the property.
- * @blob_data: The data of the property blob.
- * @blob_bytes: Size of the data, in bytes.
- * @format: Format of each element within blob_data.
+ * Return values:
+ *   - BadAtom if the given name string doesn't exist
+ *   - BadName if the property referenced by the name string does not exist
+ *   - Success if everything went well
  *
- * Return: X-defined return codes:
- *     - BadAtom if the given name string doesn't exist.
- *     - BadName if the property referenced by the name string does not exist on
- *       the given connector
- *     - Success otherwise.
+ * @param dpy The X Display
+ * @param output RandR output to set the property on
+ * @param prop_name String name of the property
+ * @param blob_data The data of the property blob
+ * @param blob_bytes Size of the data, in bytes
+ * @return X-defined return code
  */
 static int set_output_blob(Display *dpy, RROutput output,
                            const char *prop_name, void *blob_data,
@@ -170,8 +165,12 @@ static int set_output_blob(Display *dpy, RROutput output,
 }
 
 /**
- * Create a DRM color transform matrix using the given coefficients, and set
- * the output's CRTC to use it.
+ * Create a DRM color transform matrix using the given coefficients, and set the output's CRTC to use it
+ *
+ * @param dpy The X Display
+ * @param output RandR output to set the property on
+ * @param coeffs double array of size 9 containing the coefficients for CTM
+ * @return X-defined return code (See set_output_blob())
  */
 static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
     size_t blob_size = sizeof(struct drm_color_ctm);
@@ -214,7 +213,16 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
     return ret;
 }
 
-void saturation_to_ctm(double saturation, double *coeffs) {
+
+/**
+ * Generate CTM coefficients from double value.
+ *
+ * Sane values are between 0.0 and 4.0. Everything above 4.0 will massively distort colors.
+ *
+ * @param saturation Saturation valuee preferably between 0.0 and 4.0
+ * @param coeffs Double array with a length of 9. The generated coefficients will be placed here.
+ */
+static void saturation_to_ctm(double saturation, double *coeffs) {
     double temp[9];
 
     double coeff = (1.0 - saturation) / 3.0;
@@ -227,13 +235,20 @@ void saturation_to_ctm(double saturation, double *coeffs) {
 }
 
 int main(int argc, char *const argv[]) {
+    int ret;
+
+    char *saturation_opt = argv[1];
+    char *output_name = argv[2];
+
+    char *text;
+    double saturation;
+
+
     /* These coefficient arrays store an coeff form of the property
      * blob to be set. They will be translated into the format that DDX
      * driver expects when the request is sent to XRandR.
      */
     double ctm_coeffs[9];
-
-    int ret;
 
     /* Things needed by xrandr to change output properties */
     Display *dpy;
@@ -249,19 +264,18 @@ int main(int argc, char *const argv[]) {
         printf("Usage: %s SATURATION OUTPUT\n", argv[0]);
         return 1;
     }
+    saturation_opt = argv[1];
+    output_name = argv[2];
 
-    char *saturation_opt = argv[1];
-    char *output_name = argv[2];
-
-    char *text;
-    double saturation = strtod(saturation_opt, &text);
+    saturation = strtod(saturation_opt, &text);
 
     if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
         printf("SATURATION value must be greater than or equal to 0.0 and less than or equal to 4.0.\n");
         return 1;
     }
 
-    saturation_to_ctm(saturation, ctm_coeffs);  // convert saturation to ctm coefficients
+    // convert saturation to ctm coefficients
+    saturation_to_ctm(saturation, ctm_coeffs);
 
     printf("Calculated CTM:\n");
     printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1], ctm_coeffs[2]);
@@ -287,8 +301,7 @@ int main(int argc, char *const argv[]) {
         printf("Cannot find output %s.\n", output_name);
         ret = 1;
     } else {
-        /* Set the properties as parsed. The set_* functions will also
-         * translate the coefficients. */
+        // set the properties as parsed. The set_ctm function will also translate the coefficients.
         ret = set_ctm(dpy, output, ctm_coeffs);
     }
 
