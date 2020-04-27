@@ -18,6 +18,7 @@
 
 /*
  * vibrantX is based on color-demo-app written by Leo (Sunpeng) Li <sunpeng.li@amd.com>
+ *
  * Original license text of color-demo-app:
  *
  * Copyright 2018 Advanced Micro Devices, Inc.
@@ -59,15 +60,39 @@
 
 
 /**
+ * Generate CTM coefficients from double value.
+ *
+ * Sane values are between 0.0 and 4.0. Everything above 4.0 will massively
+ * distort colors.
+ *
+ * @param saturation Saturation valuee preferably between 0.0 and 4.0
+ * @param coeffs Double array with a length of 9. The generated coefficients
+ * will be placed here.
+ */
+static void saturation_to_coeffs(const double saturation, double *coeffs) {
+    double temp[9];
+
+    double coeff = (1.0 - saturation) / 3.0;
+    for (int i = 0; i < 9; i++) {
+        /* set coefficients. If index is divisible by four (0, 4, 8) add
+         * saturation to coeff
+         */
+        temp[i] = coeff + (i % 4 == 0 ? saturation : 0);
+    }
+
+    memcpy(coeffs, temp, sizeof(double) * 9);
+}
+
+/**
  * Translate coefficients to a color CTM format that DRM accepts.
  *
  * DRM requires the CTM to be in signed-magnitude, not 2's complement.
  * It is also in 32.32 fixed-point format.
  * @param coeffs Input coefficients
- * @param ctm DRM CTM struct, used to create the blob. The translated values will be placed here.
+ * @param ctm DRM CTM struct, used to create the blob. The translated values
+ * will be placed here.
  */
-static void coeffs_to_ctm(const double *coeffs,
-                          struct drm_color_ctm *ctm) {
+static void coeffs_to_ctm(const double *coeffs, struct drm_color_ctm *ctm) {
     int i;
     for (i = 0; i < 9; i++) {
         if (coeffs[i] < 0) {
@@ -88,8 +113,8 @@ static void coeffs_to_ctm(const double *coeffs,
  * @param name The output name to search for
  * @return The RandR-Output X-ID if found, 0 (None) otherwise
  */
-static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
-                                    const char *name) {
+static RROutput
+find_output_by_name(Display *dpy, XRRScreenResources *res, const char *name) {
     int i;
     RROutput ret;
     XRROutputInfo *output_info;
@@ -109,7 +134,8 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
 }
 
 /**
- * Set a DRM blob property on the given output. It calls XSync at the end to flush the change request so that it applies.
+ * Set a DRM blob property on the given output. It calls XSync at the end to
+ * flush the change request so that it applies.
  *
  * Return values:
  *   - BadAtom if the given name string doesn't exist
@@ -129,14 +155,14 @@ static int set_output_blob(Display *dpy, RROutput output,
     Atom prop_atom;
     XRRPropertyInfo *prop_info;
 
-    /* Find the X Atom associated with the property name */
+    // Find the X Atom associated with the property name
     prop_atom = XInternAtom(dpy, prop_name, 1);
     if (!prop_atom) {
         printf("Property key '%s' not found.\n", prop_name);
         return BadAtom;
     }
 
-    /* Make sure the property exists */
+    // Make sure the property exists
     prop_info = XRRQueryOutputProperty(dpy, output, prop_atom);
     if (!prop_info) {
         printf("Property key '%s' not found on output\n", prop_name);
@@ -155,17 +181,18 @@ static int set_output_blob(Display *dpy, RROutput output,
      *             = blob_bytes / (format / 8)
      *             = blob_bytes / (format >> 3)
      */
-    XRRChangeOutputProperty(dpy, output, prop_atom,
-                            XA_INTEGER, RANDR_FORMAT, PropModeReplace,
-                            blob_data, blob_bytes / (RANDR_FORMAT >> 3u));
-    /* Call XSync to apply it. */
+    XRRChangeOutputProperty(dpy, output, prop_atom, XA_INTEGER, RANDR_FORMAT,
+                            PropModeReplace, blob_data,
+                            blob_bytes / (RANDR_FORMAT >> 3u));
+    // Call XSync to apply it.
     XSync(dpy, 0);
 
     return Success;
 }
 
 /**
- * Create a DRM color transform matrix using the given coefficients, and set the output's CRTC to use it
+ * Create a DRM color transform matrix using the given coefficients, and set
+ * the output's CRTC to use it
  *
  * @param dpy The X Display
  * @param output RandR output to set the property on
@@ -213,33 +240,13 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
     return ret;
 }
 
-
-/**
- * Generate CTM coefficients from double value.
- *
- * Sane values are between 0.0 and 4.0. Everything above 4.0 will massively distort colors.
- *
- * @param saturation Saturation valuee preferably between 0.0 and 4.0
- * @param coeffs Double array with a length of 9. The generated coefficients will be placed here.
- */
-static void saturation_to_ctm(double saturation, double *coeffs) {
-    double temp[9];
-
-    double coeff = (1.0 - saturation) / 3.0;
-    for (int i = 0; i < 9; i++) {
-        // set coefficients. If index is divisible by four (0, 4, 8) add saturation to coeff
-        temp[i] = coeff + (i % 4 == 0 ? saturation : 0);
-    }
-
-    memcpy(coeffs, temp, sizeof(double) * 9);
-}
-
 int main(int argc, char *const argv[]) {
     int ret;
 
-    char *saturation_opt = argv[1];
-    char *output_name = argv[2];
+    char *saturation_opt;
+    char *output_name;
 
+    // The following values will hold the parsed double from saturation_opt
     char *text;
     double saturation;
 
@@ -250,7 +257,7 @@ int main(int argc, char *const argv[]) {
      */
     double ctm_coeffs[9];
 
-    /* Things needed by xrandr to change output properties */
+    // Things needed by xrandr to change output properties
     Display *dpy;
     Window root;
     XRRScreenResources *res;
@@ -270,23 +277,29 @@ int main(int argc, char *const argv[]) {
     saturation = strtod(saturation_opt, &text);
 
     if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
-        printf("SATURATION value must be greater than or equal to 0.0 and less than or equal to 4.0.\n");
+        printf("SATURATION value must be greater than or equal to 0.0 "
+               "and less than or equal to 4.0.\n");
         return 1;
     }
 
     // convert saturation to ctm coefficients
-    saturation_to_ctm(saturation, ctm_coeffs);
+    saturation_to_coeffs(saturation, ctm_coeffs);
 
     printf("Calculated CTM:\n");
-    printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1], ctm_coeffs[2]);
-    printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4], ctm_coeffs[5]);
-    printf("    %2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7], ctm_coeffs[8]);
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
+           ctm_coeffs[2]);
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
+           ctm_coeffs[5]);
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
+           ctm_coeffs[8]);
 
     /* Open the default X display and window, then obtain the RandR screen
-     * resource. Note that the DISPLAY environment variable must exist. */
+     * resource. Note that the DISPLAY environment variable must exist.
+     */
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
-        printf("No display specified, check the DISPLAY environment variable.\n");
+        printf("No display specified, check the DISPLAY environment "
+               "variable.\n");
         return 1;
     }
 
@@ -301,7 +314,9 @@ int main(int argc, char *const argv[]) {
         printf("Cannot find output %s.\n", output_name);
         ret = 1;
     } else {
-        // set the properties as parsed. The set_ctm function will also translate the coefficients.
+        /* set the properties as parsed. The set_ctm function will also
+         * translate the coefficients.
+         */
         ret = set_ctm(dpy, output, ctm_coeffs);
     }
 
