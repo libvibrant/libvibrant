@@ -45,6 +45,7 @@
  *
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -83,6 +84,16 @@ static void saturation_to_coeffs(const double saturation, double *coeffs) {
     memcpy(coeffs, temp, sizeof(double) * 9);
 }
 
+static double coeffs_to_saturation(const double *coeffs) {
+    /*
+     * When calculating the coefficients we add the saturation value to the
+     * coefficients with indices 0, 4, 8. This means we can just subtract
+     * a coefficient other than 0, 4, 8 from a coefficient at indices 0, 4, 8.
+     */
+
+    return coeffs[0] - coeffs[1];
+}
+
 /**
  * Translate coefficients to a color CTM format that DRM accepts.
  *
@@ -106,6 +117,35 @@ static void coeffs_to_ctm(const double *coeffs, struct drm_color_ctm *ctm) {
 }
 
 /**
+ * Translate coefficients to a color CTM format that DRM accepts.
+ *
+ * DRM requires the CTM to be in signed-magnitude, not 2's complement.
+ * It is also in 32.32 fixed-point format.
+ * @param coeffs Input coefficients
+ * @param ctm DRM CTM struct, used to create the blob. The translated values
+ * will be placed here.
+ */
+static void padded_ctm_to_coeffs(const long *padded_ctm, double *coeffs) {
+    int i;
+
+    for (i = 0; i < 18; i += 2) {
+        uint32_t ctm1 = padded_ctm[i];
+        uint32_t ctm2 = padded_ctm[i + 1];
+
+        // shove ctm2 and ctm1 into one int64
+        uint64_t ctm_n = ((uint64_t) ctm2) << 32u | ctm1;
+        // clear sign bit
+        ctm_n = (ctm_n & ~(1ULL << 63u));
+        // convert fixed-point representation to floating point
+        double ctm_d = ctm_n / pow(2.0, 32);
+        // recover original sign bit
+        if (ctm2 & (1u << 31u))
+            ctm_d *= -1;
+        coeffs[i / 2] = ctm_d;
+    }
+}
+
+/**
  * Find the output on the RandR screen resource by name.
  *
  * @param dpy The X Display
@@ -113,8 +153,8 @@ static void coeffs_to_ctm(const double *coeffs, struct drm_color_ctm *ctm) {
  * @param name The output name to search for
  * @return The RandR-Output X-ID if found, 0 (None) otherwise
  */
-static RROutput
-find_output_by_name(Display *dpy, XRRScreenResources *res, const char *name) {
+static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
+                                    const char *name) {
     int i;
     RROutput ret;
     XRROutputInfo *output_info;
@@ -191,6 +231,73 @@ static int set_output_blob(Display *dpy, RROutput output,
 }
 
 /**
+ * Set a DRM blob property on the given output. It calls XSync at the end to
+ * flush the change request so that it applies.
+ *
+ * Return values:
+ *   - BadAtom if the given name string doesn't exist
+ *   - BadName if the property referenced by the name string does not exist
+ *   - Success if everything went well
+ *
+ * @param dpy The X Display
+ * @param output RandR output to set the property on
+ * @param prop_name String name of the property
+ * @param blob_data The data of the property blob
+ * @param blob_bytes Size of the data, in bytes
+ * @return X-defined return code
+ */
+static int get_output_blob(Display *dpy, RROutput output, const char *prop_name,
+                           long *blob_data) {
+    Atom prop_atom;
+    XRRPropertyInfo *prop_info;
+
+    Atom actual_type;
+    int actual_format;
+    unsigned long nitems, bytes_after;
+    unsigned char *buffer;
+
+    // Find the X Atom associated with the property name
+    prop_atom = XInternAtom(dpy, prop_name, 1);
+    if (!prop_atom) {
+        printf("Property key '%s' not found.\n", prop_name);
+        return BadAtom;
+    }
+
+    // Make sure the property exists
+    prop_info = XRRQueryOutputProperty(dpy, output, prop_atom);
+    if (!prop_info) {
+        printf("Property key '%s' not found on output\n", prop_name);
+        return BadName;  /* Property not found */
+    }
+
+    /* Change the property
+     *
+     * Due to some restrictions in RandR, array properties of 32-bit format
+     * must be of type 'long'. See set_ctm() for details.
+     *
+     * To get the number of elements within blob_data, we take its size in
+     * bytes, divided by the size of one of it's elements in bytes:
+     *
+     * blob_length = blob_bytes / (element_bytes)
+     *             = blob_bytes / (format / 8)
+     *             = blob_bytes / (format >> 3)
+     */
+    XRRGetOutputProperty(dpy, output, prop_atom, 0, sizeof(uint32_t) * 18,
+                         0, 0, XA_INTEGER,
+                         &actual_type, &actual_format,
+                         &nitems, &bytes_after, &buffer);
+    if (actual_type == XA_INTEGER && actual_format == RANDR_FORMAT &&
+        nitems == 18) {
+        for (int i = 0; i < 18; i++) {
+            //TODO: Why does this work
+            blob_data[i] = ((uint32_t *) buffer)[i * 2];
+        }
+    }
+
+    return Success;
+}
+
+/**
  * Create a DRM color transform matrix using the given coefficients, and set
  * the output's CRTC to use it
  *
@@ -240,18 +347,29 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
     return ret;
 }
 
+static int get_ctm(Display *dpy, RROutput output, double *coeffs) {
+    long padded_ctm[18];
+    int ret;
+
+    ret = get_output_blob(dpy, output, PROP_CTM, padded_ctm);
+
+    padded_ctm_to_coeffs(padded_ctm, coeffs);
+    return ret;
+}
+
 int main(int argc, char *const argv[]) {
     int ret;
 
-    char *saturation_opt;
-    char *output_name;
+    char *saturation_opt = NULL;
+    char *output_name = NULL;
 
     // The following values will hold the parsed double from saturation_opt
     char *text;
     double saturation;
 
 
-    /* These coefficient arrays store an coeff form of the property
+    /*
+     * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
      * driver expects when the request is sent to XRandR.
      */
@@ -267,31 +385,13 @@ int main(int argc, char *const argv[]) {
     /*
      * Parse arguments
      */
-    if (argc < 3) {
-        printf("Usage: %s SATURATION OUTPUT\n", argv[0]);
+    if (argc < 2) {
+        printf("Usage: %s OUTPUT [SATURATION]\n", argv[0]);
         return 1;
     }
-    saturation_opt = argv[1];
-    output_name = argv[2];
-
-    saturation = strtod(saturation_opt, &text);
-
-    if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
-        printf("SATURATION value must be greater than or equal to 0.0 "
-               "and less than or equal to 4.0.\n");
-        return 1;
-    }
-
-    // convert saturation to ctm coefficients
-    saturation_to_coeffs(saturation, ctm_coeffs);
-
-    printf("Calculated CTM:\n");
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
-           ctm_coeffs[2]);
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
-           ctm_coeffs[5]);
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
-           ctm_coeffs[8]);
+    output_name = argv[1];
+    if (argc > 2)
+        saturation_opt = argv[2];
 
     /* Open the default X display and window, then obtain the RandR screen
      * resource. Note that the DISPLAY environment variable must exist.
@@ -314,10 +414,72 @@ int main(int argc, char *const argv[]) {
         printf("Cannot find output %s.\n", output_name);
         ret = 1;
     } else {
-        /* set the properties as parsed. The set_ctm function will also
-         * translate the coefficients.
-         */
-        ret = set_ctm(dpy, output, ctm_coeffs);
+        // get current saturation
+        double n_ctm_coeffs[9];
+
+        ret = get_ctm(dpy, output, n_ctm_coeffs);
+
+        double n_saturation = coeffs_to_saturation(n_ctm_coeffs);
+
+        printf("Current CTM:\n");
+        printf("\t%2.4f:%2.4f:%2.4f\n", n_ctm_coeffs[0], n_ctm_coeffs[1],
+               n_ctm_coeffs[2]);
+        printf("\t%2.4f:%2.4f:%2.4f\n", n_ctm_coeffs[3], n_ctm_coeffs[4],
+               n_ctm_coeffs[5]);
+        printf("\t%2.4f:%2.4f:%2.4f\n", n_ctm_coeffs[6], n_ctm_coeffs[7],
+               n_ctm_coeffs[8]);
+        printf("Current Saturation: %f\n", n_saturation);
+
+
+        if (saturation_opt != NULL) {
+            // set saturation
+            saturation = strtod(saturation_opt, &text);
+
+            if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
+                printf("SATURATION value must be greater than or equal to 0.0 "
+                       "and less than or equal to 4.0.\n");
+                return 1;
+            }
+
+            // convert saturation to ctm coefficients
+            saturation_to_coeffs(saturation, ctm_coeffs);
+
+            printf("New CTM:\n");
+            printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
+                   ctm_coeffs[2]);
+            printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
+                   ctm_coeffs[5]);
+            printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
+                   ctm_coeffs[8]);
+            printf("New Saturation: %f", saturation);
+
+            /* Open the default X display and window, then obtain the RandR screen
+             * resource. Note that the DISPLAY environment variable must exist.
+             */
+            dpy = XOpenDisplay(NULL);
+            if (!dpy) {
+                printf("No display specified, check the DISPLAY environment "
+                       "variable.\n");
+                return 1;
+            }
+
+            root = DefaultRootWindow(dpy);
+            res = XRRGetScreenResourcesCurrent(dpy, root);
+
+            /* RandR needs to know which output we're setting the property on.
+             * Since we only have a name to work with, find the RROutput using the
+             * name. */
+            output = find_output_by_name(dpy, res, output_name);
+            if (!output) {
+                printf("Cannot find output %s.\n", output_name);
+                ret = 1;
+            } else {
+                /* set the properties as parsed. The set_ctm function will also
+                 * translate the coefficients.
+                 */
+                ret = set_ctm(dpy, output, ctm_coeffs);
+            }
+        }
     }
 
     /* Ensure proper cleanup */
