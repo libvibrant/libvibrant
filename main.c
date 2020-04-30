@@ -71,17 +71,13 @@
  * will be placed here.
  */
 static void saturation_to_coeffs(const double saturation, double *coeffs) {
-    double temp[9];
-
     double coeff = (1.0 - saturation) / 3.0;
     for (int i = 0; i < 9; i++) {
         /* set coefficients. If index is divisible by four (0, 4, 8) add
          * saturation to coeff
          */
-        temp[i] = coeff + (i % 4 == 0 ? saturation : 0);
+        coeffs[i] = coeff + (i % 4 == 0 ? saturation : 0);
     }
-
-    memcpy(coeffs, temp, sizeof(double) * 9);
 }
 
 /**
