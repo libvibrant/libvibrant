@@ -183,6 +183,31 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
 }
 
 /**
+ * Check if output has CTM property.
+ *
+ * @param dpy The X Display
+ * @param output RandR output to get the information from
+ * @return 1 if it has a property, 0 if it doesn't or X doesn't support it
+ */
+static int output_has_ctm(Display *dpy, RROutput output) {
+    Atom prop_atom;
+
+    // Find the X Atom associated with the property name
+    prop_atom = XInternAtom(dpy, PROP_CTM, 1);
+    if (!prop_atom) {
+        printf("Property key '%s' not found.\n", PROP_CTM);
+        return 0;
+    }
+
+    // Make sure the property exists
+    if (!XRRQueryOutputProperty(dpy, output, prop_atom)) {
+        printf("Property key '%s' not found on output\n", PROP_CTM);
+        return 0;
+    }
+    return 1;
+}
+
+/**
  * Set a DRM blob property on the given output. It calls XSync at the end to
  * flush the change request so that it applies.
  *
@@ -492,10 +517,14 @@ int main(int argc, char *const argv[]) {
         printf("Cannot find output %s.\n", output_name);
         x_status = BadRequest;
     } else {
-        get_saturation(dpy, output, &x_status);
-        if (saturation_opt != NULL) {
-            // set saturation
-            set_saturation(dpy, output, saturation, &x_status);
+        if (output_has_ctm(dpy, output)) {
+            get_saturation(dpy, output, &x_status);
+            if (saturation_opt != NULL) {
+                // set saturation
+                set_saturation(dpy, output, saturation, &x_status);
+            }
+        } else {
+            printf("Output does not support saturation.");
         }
     }
 
