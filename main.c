@@ -66,8 +66,8 @@
  * Sane values are between 0.0 and 4.0. Everything above 4.0 will massively
  * distort colors.
  *
- * @param saturation Saturation valuee preferably between 0.0 and 4.0
- * @param coeffs Double array with a length of 9. The generated coefficients
+ * @param saturation Saturation value preferably between 0.0 and 4.0
+ * @param coeffs Double array with a length of 9, holding the coefficients
  * will be placed here.
  */
 static void saturation_to_coeffs(const double saturation, double *coeffs) {
@@ -84,6 +84,12 @@ static void saturation_to_coeffs(const double saturation, double *coeffs) {
     memcpy(coeffs, temp, sizeof(double) * 9);
 }
 
+/**
+ * Convert CTM coefficients to human readable "saturation" value.
+ *
+ * @param coeffs Double array with a length of 9, holding the coefficients
+ * @return Saturation value generally between 0.0 and 4.0
+ */
 static double coeffs_to_saturation(const double *coeffs) {
     /*
      * When calculating the coefficients we add the saturation value to the
@@ -95,7 +101,7 @@ static double coeffs_to_saturation(const double *coeffs) {
 }
 
 /**
- * Translate coefficients to a color CTM format that DRM accepts.
+ * Translate CTM coefficients to a color CTM format that DRM accepts.
  *
  * DRM requires the CTM to be in signed-magnitude, not 2's complement.
  * It is also in 32.32 fixed-point format.
@@ -103,7 +109,8 @@ static double coeffs_to_saturation(const double *coeffs) {
  * @param ctm DRM CTM struct, used to create the blob. The translated values
  * will be placed here.
  */
-static void coeffs_to_ctm(const double *coeffs, struct drm_color_ctm *ctm) {
+static void translate_coeffs_to_ctm(const double *coeffs,
+                                    struct drm_color_ctm *ctm) {
     int i;
     for (i = 0; i < 9; i++) {
         if (coeffs[i] < 0) {
@@ -117,15 +124,17 @@ static void coeffs_to_ctm(const double *coeffs, struct drm_color_ctm *ctm) {
 }
 
 /**
- * Translate coefficients to a color CTM format that DRM accepts.
+ * Translate padded color CTM format back to coefficients.
  *
  * DRM requires the CTM to be in signed-magnitude, not 2's complement.
  * It is also in 32.32 fixed-point format.
- * @param coeffs Input coefficients
- * @param ctm DRM CTM struct, used to create the blob. The translated values
- * will be placed here.
+ * This translates them back to handy-dandy doubles.
+ *
+ * @param padded_ctm Padded color CTM formatted input
+ * @param coeffs Translated coefficients will be placed here.
  */
-static void padded_ctm_to_coeffs(const long *padded_ctm, double *coeffs) {
+static void translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
+                                           double *coeffs) {
     int i;
 
     for (i = 0; i < 18; i += 2) {
@@ -155,7 +164,7 @@ static void padded_ctm_to_coeffs(const long *padded_ctm, double *coeffs) {
  */
 static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
                                     const char *name) {
-    int i;
+    int i, cmp;
     RROutput ret;
     XRROutputInfo *output_info;
 
@@ -163,12 +172,12 @@ static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
         ret = res->outputs[i];
         output_info = XRRGetOutputInfo(dpy, res, ret);
 
-        if (!strcmp(name, output_info->name)) {
-            XRRFreeOutputInfo(output_info);
+        cmp = strcmp(name, output_info->name);
+        XRRFreeOutputInfo(output_info);
+
+        if (!cmp) {
             return ret;
         }
-
-        XRRFreeOutputInfo(output_info);
     }
     return 0;
 }
@@ -231,8 +240,10 @@ static int set_output_blob(Display *dpy, RROutput output,
 }
 
 /**
- * Set a DRM blob property on the given output. It calls XSync at the end to
- * flush the change request so that it applies.
+ * Get a DRM blob property on the given output.
+ *
+ * This method is heavily biased against CTM values. It may not work as is for
+ * other properties.
  *
  * Return values:
  *   - BadAtom if the given name string doesn't exist
@@ -242,19 +253,17 @@ static int set_output_blob(Display *dpy, RROutput output,
  * @param dpy The X Display
  * @param output RandR output to set the property on
  * @param prop_name String name of the property
- * @param blob_data The data of the property blob
- * @param blob_bytes Size of the data, in bytes
+ * @param blob_data The data of the property blob. The output will be put here.
  * @return X-defined return code
  */
-static int get_output_blob(Display *dpy, RROutput output, const char *prop_name,
-                           long *blob_data) {
-    Atom prop_atom;
-    XRRPropertyInfo *prop_info;
+static int get_output_blob(Display *dpy, RROutput output,
+                           const char *prop_name, uint64_t *blob_data) {
 
-    Atom actual_type;
-    int actual_format;
-    unsigned long nitems, bytes_after;
+    int ret, actual_format;
+    unsigned long n_items, bytes_after;
     unsigned char *buffer;
+    Atom prop_atom, actual_type;
+    XRRPropertyInfo *prop_info;
 
     // Find the X Atom associated with the property name
     prop_atom = XInternAtom(dpy, prop_name, 1);
@@ -270,31 +279,24 @@ static int get_output_blob(Display *dpy, RROutput output, const char *prop_name,
         return BadName;  /* Property not found */
     }
 
-    /* Change the property
-     *
-     * Due to some restrictions in RandR, array properties of 32-bit format
-     * must be of type 'long'. See set_ctm() for details.
-     *
-     * To get the number of elements within blob_data, we take its size in
-     * bytes, divided by the size of one of it's elements in bytes:
-     *
-     * blob_length = blob_bytes / (element_bytes)
-     *             = blob_bytes / (format / 8)
-     *             = blob_bytes / (format >> 3)
-     */
-    XRRGetOutputProperty(dpy, output, prop_atom, 0, sizeof(uint32_t) * 18,
-                         0, 0, XA_INTEGER,
-                         &actual_type, &actual_format,
-                         &nitems, &bytes_after, &buffer);
+    // Get the property
+    ret = XRRGetOutputProperty(dpy, output, prop_atom, 0, sizeof(uint32_t) * 18,
+                               0, 0, XA_INTEGER,
+                               &actual_type, &actual_format,
+                               &n_items, &bytes_after, &buffer);
     if (actual_type == XA_INTEGER && actual_format == RANDR_FORMAT &&
-        nitems == 18) {
+        n_items == 18) {
         for (int i = 0; i < 18; i++) {
-            //TODO: Why does this work
-            blob_data[i] = ((uint32_t *) buffer)[i * 2];
+            /*
+             * Due to some restrictions in RandR, array properties of 32-bit format
+             * must be of type 'long'. See set_ctm() for details.
+             */
+            blob_data[i] = ((uint64_t *) buffer)[i];
         }
+        return Success;
     }
 
-    return Success;
+    return ret;
 }
 
 /**
@@ -313,7 +315,7 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
 
     int i, ret;
 
-    coeffs_to_ctm(coeffs, &ctm);
+    translate_coeffs_to_ctm(coeffs, &ctm);
 
     /* Workaround:
      *
@@ -337,7 +339,7 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
      * process.
      */
     for (i = 0; i < 18; i++)
-        /* Think of this as a padded 'memcpy()'. */
+        // Think of this as a padded 'memcpy()'.
         padded_ctm[i] = ((uint32_t *) ctm.matrix)[i];
 
     ret = set_output_blob(dpy, output, PROP_CTM, &padded_ctm, blob_size);
@@ -347,18 +349,92 @@ static int set_ctm(Display *dpy, RROutput output, double *coeffs) {
     return ret;
 }
 
+/**
+ * Query current CTM values from output's CRTC and convert them to double
+ * coefficients.
+ *
+ * @param dpy The X Display
+ * @param output RandR output to set the property on
+ * @param coeffs double array of size 9. Will hold the coefficients.
+ * @return X-defined return code (See get_output_blob())
+ */
 static int get_ctm(Display *dpy, RROutput output, double *coeffs) {
-    long padded_ctm[18];
+    uint64_t padded_ctm[18];
     int ret;
 
     ret = get_output_blob(dpy, output, PROP_CTM, padded_ctm);
 
-    padded_ctm_to_coeffs(padded_ctm, coeffs);
+    translate_padded_ctm_to_coeffs(padded_ctm, coeffs);
     return ret;
 }
 
+/**
+ * Get saturation of output in human readable format.
+ * (See saturation_to_coeffs() doc)
+ *
+ * @param dpy The X Display
+ * @param output RandR output to get the saturation from
+ * @param x_status X-defined return code (See get_ctm())
+ * @return Saturation of output
+ */
+double get_saturation(Display *dpy, RROutput output, int *x_status) {
+    /*
+     * These coefficient arrays store a coeff form of the property
+     * blob to be set. They will be translated into the format that DDX
+     * driver expects when the request is sent to XRandR.
+     */
+    double ctm_coeffs[9];
+
+    *x_status = get_ctm(dpy, output, ctm_coeffs);
+
+    double saturation = coeffs_to_saturation(ctm_coeffs);
+
+    printf("Current CTM:\n");
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
+           ctm_coeffs[2]);
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
+           ctm_coeffs[5]);
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
+           ctm_coeffs[8]);
+    printf("Current Saturation: %f\n", saturation);
+
+    return saturation;
+}
+
+/**
+ * Get saturation of output in human readable format.
+ * (See saturation_to_coeffs() doc)
+ *
+ * @param dpy The X Display
+ * @param output RandR output to set the saturation on
+ * @param saturation Saturation of output
+ * @param x_status X-defined return code (See get_ctm())
+ */
+void set_saturation(Display *dpy, RROutput output, double saturation,
+                    int *x_status) {
+    /*
+     * These coefficient arrays store a coeff form of the property
+     * blob to be set. They will be translated into the format that DDX
+     * driver expects when the request is sent to XRandR.
+     */
+    double ctm_coeffs[9];
+
+    // convert saturation to ctm coefficients
+    saturation_to_coeffs(saturation, ctm_coeffs);
+
+    printf("New CTM:\n");
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
+           ctm_coeffs[2]);
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
+           ctm_coeffs[5]);
+    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
+           ctm_coeffs[8]);
+    printf("New Saturation: %f", saturation);
+    *x_status = set_ctm(dpy, output, ctm_coeffs);
+}
+
 int main(int argc, char *const argv[]) {
-    int ret;
+    int x_status;
 
     char *saturation_opt = NULL;
     char *output_name = NULL;
@@ -367,15 +443,7 @@ int main(int argc, char *const argv[]) {
     char *text;
     double saturation;
 
-
-    /*
-     * These coefficient arrays store a coeff form of the property
-     * blob to be set. They will be translated into the format that DDX
-     * driver expects when the request is sent to XRandR.
-     */
-    double ctm_coeffs[9];
-
-    // Things needed by xrandr to change output properties
+    // Values needed for libXRandR
     Display *dpy;
     Window root;
     XRRScreenResources *res;
@@ -390,10 +458,20 @@ int main(int argc, char *const argv[]) {
         return 1;
     }
     output_name = argv[1];
-    if (argc > 2)
+    if (argc > 2) {
         saturation_opt = argv[2];
 
-    /* Open the default X display and window, then obtain the RandR screen
+        saturation = strtod(saturation_opt, &text);
+
+        if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
+            printf("SATURATION value must be greater than or equal to 0.0 "
+                   "and less than or equal to 4.0.\n");
+            return 1;
+        }
+    }
+
+    /*
+     * Open the default X display and window, then obtain the RandR screen
      * resource. Note that the DISPLAY environment variable must exist.
      */
     dpy = XOpenDisplay(NULL);
@@ -412,73 +490,12 @@ int main(int argc, char *const argv[]) {
     output = find_output_by_name(dpy, res, output_name);
     if (!output) {
         printf("Cannot find output %s.\n", output_name);
-        ret = 1;
+        x_status = BadRequest;
     } else {
-        // get current saturation
-        double n_ctm_coeffs[9];
-
-        ret = get_ctm(dpy, output, n_ctm_coeffs);
-
-        double n_saturation = coeffs_to_saturation(n_ctm_coeffs);
-
-        printf("Current CTM:\n");
-        printf("\t%2.4f:%2.4f:%2.4f\n", n_ctm_coeffs[0], n_ctm_coeffs[1],
-               n_ctm_coeffs[2]);
-        printf("\t%2.4f:%2.4f:%2.4f\n", n_ctm_coeffs[3], n_ctm_coeffs[4],
-               n_ctm_coeffs[5]);
-        printf("\t%2.4f:%2.4f:%2.4f\n", n_ctm_coeffs[6], n_ctm_coeffs[7],
-               n_ctm_coeffs[8]);
-        printf("Current Saturation: %f\n", n_saturation);
-
-
+        get_saturation(dpy, output, &x_status);
         if (saturation_opt != NULL) {
             // set saturation
-            saturation = strtod(saturation_opt, &text);
-
-            if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
-                printf("SATURATION value must be greater than or equal to 0.0 "
-                       "and less than or equal to 4.0.\n");
-                return 1;
-            }
-
-            // convert saturation to ctm coefficients
-            saturation_to_coeffs(saturation, ctm_coeffs);
-
-            printf("New CTM:\n");
-            printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
-                   ctm_coeffs[2]);
-            printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
-                   ctm_coeffs[5]);
-            printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
-                   ctm_coeffs[8]);
-            printf("New Saturation: %f", saturation);
-
-            /* Open the default X display and window, then obtain the RandR screen
-             * resource. Note that the DISPLAY environment variable must exist.
-             */
-            dpy = XOpenDisplay(NULL);
-            if (!dpy) {
-                printf("No display specified, check the DISPLAY environment "
-                       "variable.\n");
-                return 1;
-            }
-
-            root = DefaultRootWindow(dpy);
-            res = XRRGetScreenResourcesCurrent(dpy, root);
-
-            /* RandR needs to know which output we're setting the property on.
-             * Since we only have a name to work with, find the RROutput using the
-             * name. */
-            output = find_output_by_name(dpy, res, output_name);
-            if (!output) {
-                printf("Cannot find output %s.\n", output_name);
-                ret = 1;
-            } else {
-                /* set the properties as parsed. The set_ctm function will also
-                 * translate the coefficients.
-                 */
-                ret = set_ctm(dpy, output, ctm_coeffs);
-            }
+            set_saturation(dpy, output, saturation, &x_status);
         }
     }
 
@@ -486,5 +503,5 @@ int main(int argc, char *const argv[]) {
     XRRFreeScreenResources(res);
     XCloseDisplay(dpy);
 
-    return ret;
+    return x_status;
 }
