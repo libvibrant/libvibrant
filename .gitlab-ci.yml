@@ -1,0 +1,60 @@
+image: gcc
+
+variables: 
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+  GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+
+get-sonar-binaries: 
+  stage: .pre
+  cache: 
+    policy: push
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths: 
+      - build-wrapper/
+      - sonar-scanner/
+  script: 
+    # Download sonar-scanner
+    - curl -sSLo ./sonar-scanner.zip 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.2.0.1873-linux.zip'
+    - unzip -o sonar-scanner.zip
+    - mv sonar-scanner-4.2.0.1873-linux sonar-scanner
+    # Download build-wrapper
+    - curl -sSLo ./build-wrapper-linux-x86.zip "${SONAR_HOST_URL}/static/cpp/build-wrapper-linux-x86.zip"
+    - unzip -oj build-wrapper-linux-x86.zip -d ./build-wrapper
+  only: 
+    - merge_requests
+    - master
+    - develop
+
+build: 
+  stage: build
+  cache: 
+    policy: pull-push
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths: 
+      - build-wrapper/
+      - sonar-scanner/
+      - bw-output/
+  script: 
+    # Run the build inside the build wrapper
+    - build-wrapper/build-wrapper-linux-x86-64 --out-dir bw-output <your clean build command>
+  only: 
+    - merge_requests
+    - master
+    - develop
+      
+sonarcloud-check: 
+  stage: .post
+  cache: 
+    policy: pull
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths: 
+      - build-wrapper/
+      - sonar-scanner/
+      - bw-output/
+  script: 
+    - sonar-scanner/bin/sonar-scanner -Dsonar.host.url="${SONAR_HOST_URL}" -Dsonar.token="${SONAR_TOKEN}" -Dsonar.cfamily.build-wrapper-output=bw-output
+  only: 
+    - merge_requests
+    - master
+    - develop
+
