@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(vibrantX C)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 
 find_library(libdrm REQUIRED)
 find_package(X11 REQUIRED)
