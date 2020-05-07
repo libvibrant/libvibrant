@@ -9,6 +9,9 @@
 
 #ifndef VIBRANT_CTM_H
 #define VIBRANT_CTM_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Set a DRM blob property on the given output. It calls XSync at the end to
@@ -103,4 +106,7 @@ void set_saturation_ctm(Display *dpy, RROutput output, double saturation,
  */
 int output_has_ctm(Display *dpy, RROutput output);
 
-#endif //VIBRANTX_CTM_H
+#ifdef __cplusplus
+}
+#endif
+#endif // VIBRANT_CTM_H

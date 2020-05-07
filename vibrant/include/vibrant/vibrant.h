@@ -3,6 +3,9 @@
 
 #ifndef VIBRANT_VIBRANT_H
 #define VIBRANT_VIBRANT_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * See get_saturation_ctm
@@ -23,4 +26,8 @@ double get_saturation(Display *dpy, RROutput output, int *x_status);
 void set_saturation(Display *dpy, RROutput output, double saturation,
                     int *x_status);
 
+
+#ifdef __cplusplus
+}
 #endif
+#endif // VIBRANT_VIBRANT_H
