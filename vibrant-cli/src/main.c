@@ -53,6 +53,7 @@
 #include <X11/extensions/Xrandr.h>
 
 #include <vibrant/vibrant.h>
+#include <vibrant/ctm.h>
 
 
 /**
@@ -151,6 +152,7 @@ int main(int argc, char *const argv[]) {
             }
         } else {
             printf("Output does not support saturation.");
+            x_status = BadValue;
         }
     }
 
