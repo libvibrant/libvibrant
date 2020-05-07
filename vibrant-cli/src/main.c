@@ -52,7 +52,36 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-#include "vibrant/vibrant.c"
+#include <vibrant/vibrant.h>
+
+
+/**
+ * Find the output on the RandR screen resource by name.
+ *
+ * @param dpy The X Display
+ * @param res The RandR screen resource
+ * @param name The output name to search for
+ * @return The RandR-Output X-ID if found, 0 (None) otherwise
+ */
+static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
+                                    const char *name) {
+    int i, cmp;
+    RROutput ret;
+    XRROutputInfo *output_info;
+
+    for (i = 0; i < res->noutput; i++) {
+        ret = res->outputs[i];
+        output_info = XRRGetOutputInfo(dpy, res, ret);
+
+        cmp = strcmp(name, output_info->name);
+        XRRFreeOutputInfo(output_info);
+
+        if (!cmp) {
+            return ret;
+        }
+    }
+    return 0;
+}
 
 
 int main(int argc, char *const argv[]) {

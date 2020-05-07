@@ -45,9 +45,8 @@
  *
  */
 
-#include "vibrant.h"
-
-#include "ctm.c"
+#include "vibrant/vibrant.h"
+#include "vibrant/ctm.h"
 
 double get_saturation(Display *dpy, RROutput output, int *x_status) {
     /*

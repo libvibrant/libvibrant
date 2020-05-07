@@ -7,8 +7,8 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-#ifndef VIBRANTX_CTM_H
-#define VIBRANTX_CTM_H
+#ifndef VIBRANT_CTM_H
+#define VIBRANT_CTM_H
 
 /**
  * Set a DRM blob property on the given output. It calls XSync at the end to

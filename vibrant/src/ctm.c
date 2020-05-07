@@ -56,7 +56,7 @@
 #include "util.c"
 #include "utilx.c"
 
-#include "ctm.h"
+#include "vibrant/ctm.h"
 
 #define RANDR_FORMAT 32u
 #define PROP_CTM "CTM"

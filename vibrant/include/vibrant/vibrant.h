@@ -1,6 +1,9 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
+#ifndef VIBRANT_VIBRANT_H
+#define VIBRANT_VIBRANT_H
+
 /**
  * See get_saturation_ctm
  * @param dpy
@@ -19,3 +22,5 @@ double get_saturation(Display *dpy, RROutput output, int *x_status);
  */
 void set_saturation(Display *dpy, RROutput output, double saturation,
                     int *x_status);
+
+#endif

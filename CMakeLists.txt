@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
-project(vibrantX C)
+project(libvibrant VERSION 1.0.0 LANGUAGES C)
+
+include(GNUInstallDirs)
 
 set(CMAKE_C_STANDARD 11)
 
-add_subdirectory(src)
-add_subdirectory(src/vibrant)
+add_subdirectory(vibrant)
+add_subdirectory(vibrant-cli)
