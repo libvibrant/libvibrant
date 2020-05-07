@@ -1,4 +1,4 @@
-project(libvibrant LANGUAGES C)
+project(vibrant LANGUAGES C)
 
 find_library(libdrm REQUIRED)
 find_package(X11 REQUIRED)
