@@ -1,4 +1,4 @@
-project(libvibrant C)
+project(libvibrant LANGUAGES C)
 
 find_library(libdrm REQUIRED)
 find_package(X11 REQUIRED)
@@ -10,8 +10,8 @@ target_include_directories(vibrant PRIVATE src)
 
 target_link_libraries(vibrant drm X11 Xrandr)
 
-set_target_properties(vibrant PROPERTIES VERSION 1.0.0)
-set_target_properties(vibrant PROPERTIES SOVERSION 1)
+set_target_properties(vibrant PROPERTIES VERSION ${CMAKE_PROJECT_VERSION})
+set_target_properties(vibrant PROPERTIES SOVERSION 0)
 
-install(TARGETS vibrant DESTINATION lib)
-install(DIRECTORY include/ DESTINATION include)
+install(TARGETS vibrant DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
