@@ -46,6 +46,7 @@
  */
 
 #include <math.h>
+#include <stdio.h>
 #include <stdint.h>
 
 #include <libdrm/drm_mode.h>  // need drm_color_ctm
@@ -138,4 +139,14 @@ static void translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
             ctm_d *= -1;
         coeffs[i / 2] = ctm_d;
     }
+}
+
+static void print_ctm_coeffs(double ctm_coeffs[9], double saturation) {
+    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
+           ctm_coeffs[2]);
+    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
+           ctm_coeffs[5]);
+    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
+           ctm_coeffs[8]);
+    printf("S:\t%2.4f\n", saturation);
 }

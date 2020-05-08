@@ -208,13 +208,7 @@ double get_saturation_ctm(Display *dpy, RROutput output, int *x_status) {
     double saturation = coeffs_to_saturation(ctm_coeffs);
 
     printf("Current CTM:\n");
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
-           ctm_coeffs[2]);
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
-           ctm_coeffs[5]);
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
-           ctm_coeffs[8]);
-    printf("Current Saturation: %f\n", saturation);
+    print_ctm_coeffs(ctm_coeffs, saturation);
 
     return saturation;
 }
@@ -232,13 +226,8 @@ void set_saturation_ctm(Display *dpy, RROutput output, double saturation,
     saturation_to_coeffs(saturation, ctm_coeffs);
 
     printf("New CTM:\n");
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
-           ctm_coeffs[2]);
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
-           ctm_coeffs[5]);
-    printf("\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
-           ctm_coeffs[8]);
-    printf("New Saturation: %f", saturation);
+    print_ctm_coeffs(ctm_coeffs, saturation);
+
     *x_status = set_ctm(dpy, output, ctm_coeffs);
 }
 
