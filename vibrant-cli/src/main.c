@@ -55,6 +55,10 @@
 #include <vibrant/vibrant.h>
 #include <vibrant/ctm.h>
 
+#ifndef VIBRANT_VERSION
+#define VIBRANT_VERSION "Unknown"
+#endif
+
 
 /**
  * Find the output on the RandR screen resource by name.
@@ -101,10 +105,10 @@ int main(int argc, char *const argv[]) {
     XRRScreenResources *res;
     RROutput output;
 
+    printf("vibrant version %s\n", VIBRANT_VERSION);
 
-    /*
-     * Parse arguments
-     */
+
+    // Parse arguments
     if (argc < 2) {
         printf("Usage: %s OUTPUT [SATURATION]\n", argv[0]);
         return 1;
@@ -151,7 +155,7 @@ int main(int argc, char *const argv[]) {
                 set_saturation(dpy, output, saturation, &x_status);
             }
         } else {
-            printf("Output does not support saturation.");
+            printf("Output does not support saturation.\n");
             x_status = BadValue;
         }
     }
