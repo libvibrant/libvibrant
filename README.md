@@ -1,12 +1,12 @@
-vibrantX
---------
-Adjust color vibrance of X11 output
+vibrant
+-------
+A simple library to adjust color saturation of X11 outputs.
 
-vibrantX is a simple tool to adjust the color vibrance (or color saturation) of X11 outputs.
+vibrant, with it's library libvibrant and it's command-line tool vibrant-cli, allows you to adjust the color saturation on X11 outputs, as long as the CTM property is supported.
 
 # Usage
 ```bash
-$ vibrantX OUTPUT [SATURATION]
+$ vibrant-cli OUTPUT [SATURATION]
 ```
 Get or set saturation of output.
 
@@ -19,23 +19,32 @@ Get or set saturation of output.
 ## Examples
 ### 150% on DisplayPort-0
 ```bash
-$ vibrantX DisplayPort-0 1.5
+$ vibrant-cli DisplayPort-0 1.5
 ```
 
 ### Monochrome on DisplayPort-0
 ```bash
-$ vibrantX DisplayPort-0 0
+$ vibrant-cli DisplayPort-0 0
 ```
 
 ### Reset DisplayPort-0
 ```bash
-$ vibrantX DisplayPort-0 1
+$ vibrant-cli DisplayPort-0 1
 ```
 
 ### Only query current saturation on DisplayPort-0
 ```bash
-$ vibrantX DisplayPort-0
+$ vibrant-cli DisplayPort-0
 ```
+
+# Installation
+## Arch Linux
+vibrant is available on the Arch Linux User Repository, maintained by me.
+- [vibrant](https://aur.archlinux.org/packages/vibrant/)<sup>AUR</sup> - Latest release of the vibrant library and vibrant-cli
+- [vibrant-git](https://aur.archlinux.org/packages/vibrant-git/)<sup>AUR</sup> - Latest revision from Git master of the vibrant library and vibrant-cli
+
+## Other Distros
+See [Bulding](#Building)
 
 # Building
 This project uses CMake.
@@ -49,10 +58,7 @@ $ cmake ..
 $ make
 ```
 
-The binary will be called `vibrantX`
-
-# General TODOs
-- Are there any possible buffer overflows?
+The binary will be called `vibrant-cli` and will be linked to `libvibrant.so.0`
 
 # License
 This project is licensed under the terms of the GNU General Public License 3.0. You can read the full license
