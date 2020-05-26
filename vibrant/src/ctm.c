@@ -61,7 +61,7 @@
 #define RANDR_FORMAT 32u
 #define PROP_CTM "CTM"
 
-int set_output_blob(Display *dpy, RROutput output, const char *prop_name,
+int vibrant_set_output_blob(Display *dpy, RROutput output, const char *prop_name,
                     void *blob_data, size_t blob_bytes) {
     Atom prop_atom;
     XRRPropertyInfo *prop_info;
@@ -101,7 +101,7 @@ int set_output_blob(Display *dpy, RROutput output, const char *prop_name,
     return Success;
 }
 
-int get_output_blob(Display *dpy, RROutput output, const char *prop_name,
+int vibrant_get_output_blob(Display *dpy, RROutput output, const char *prop_name,
                     uint64_t *blob_data) {
 
     int ret, actual_format;
@@ -144,7 +144,7 @@ int get_output_blob(Display *dpy, RROutput output, const char *prop_name,
     return ret;
 }
 
-int set_ctm(Display *dpy, RROutput output, double *coeffs) {
+int vibrant_set_ctm(Display *dpy, RROutput output, double *coeffs) {
     size_t blob_size = sizeof(struct drm_color_ctm);
     struct drm_color_ctm ctm;
     long padded_ctm[18];
@@ -185,7 +185,7 @@ int set_ctm(Display *dpy, RROutput output, double *coeffs) {
     return ret;
 }
 
-int get_ctm(Display *dpy, RROutput output, double *coeffs) {
+int vibrant_get_ctm(Display *dpy, RROutput output, double *coeffs) {
     uint64_t padded_ctm[18];
     int ret;
 
@@ -195,7 +195,7 @@ int get_ctm(Display *dpy, RROutput output, double *coeffs) {
     return ret;
 }
 
-double get_saturation_ctm(Display *dpy, RROutput output, int *x_status) {
+double vibrant_get_saturation_ctm(Display *dpy, RROutput output, int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
@@ -213,7 +213,7 @@ double get_saturation_ctm(Display *dpy, RROutput output, int *x_status) {
     return saturation;
 }
 
-void set_saturation_ctm(Display *dpy, RROutput output, double saturation,
+void vibrant_set_saturation_ctm(Display *dpy, RROutput output, double saturation,
                         int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
@@ -231,6 +231,6 @@ void set_saturation_ctm(Display *dpy, RROutput output, double saturation,
     *x_status = set_ctm(dpy, output, ctm_coeffs);
 }
 
-int output_has_ctm(Display *dpy, RROutput output) {
+int vibrant_output_has_ctm(Display *dpy, RROutput output) {
     return output_has_property(dpy, output, PROP_CTM);
 }

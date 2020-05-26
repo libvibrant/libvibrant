@@ -48,7 +48,7 @@
 #include "vibrant/vibrant.h"
 #include "vibrant/ctm.h"
 
-double get_saturation(Display *dpy, RROutput output, int *x_status) {
+double vibrant_get_saturation(Display *dpy, RROutput output, int *x_status) {
     /*
      * Currently vibrant only supports X outputs with the CTM property.
      * In the future this code can be adapted to check for other outputs, too.
@@ -62,7 +62,7 @@ double get_saturation(Display *dpy, RROutput output, int *x_status) {
     return 0.0;
 }
 
-void set_saturation(Display *dpy, RROutput output, double saturation,
+void vibrant_set_saturation(Display *dpy, RROutput output, double saturation,
                     int *x_status) {
     /*
      * Currently vibrant only supports X outputs with the CTM property.

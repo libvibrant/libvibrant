@@ -59,7 +59,7 @@
  * @param property String containing name of property
  * @return 1 if it has a property, 0 if it doesn't or X doesn't support it
  */
-static int output_has_property(Display *dpy, RROutput output, char *property) {
+static int vibrant_output_has_property(Display *dpy, RROutput output, char *property) {
     Atom prop_atom;
 
     // Find the X Atom associated with the property name

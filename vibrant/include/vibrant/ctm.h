@@ -73,7 +73,7 @@ extern "C" {
  * @param blob_bytes Size of the data, in bytes
  * @return X-defined return code
  */
-int set_output_blob(Display *dpy, RROutput output, const char *prop_name,
+int vibrant_set_output_blob(Display *dpy, RROutput output, const char *prop_name,
                     void *blob_data, size_t blob_bytes);
 
 /**
@@ -93,7 +93,7 @@ int set_output_blob(Display *dpy, RROutput output, const char *prop_name,
  * @param blob_data The data of the property blob. The output will be put here.
  * @return X-defined return code
  */
-int get_output_blob(Display *dpy, RROutput output, const char *prop_name,
+int vibrant_get_output_blob(Display *dpy, RROutput output, const char *prop_name,
                     uint64_t *blob_data);
 
 /**
@@ -105,7 +105,7 @@ int get_output_blob(Display *dpy, RROutput output, const char *prop_name,
  * @param coeffs double array of size 9 containing the coefficients for CTM
  * @return X-defined return code (See set_output_blob())
  */
-int set_ctm(Display *dpy, RROutput output, double *coeffs);
+int vibrant_set_ctm(Display *dpy, RROutput output, double *coeffs);
 
 /**
  * Query current CTM values from output's CRTC and convert them to double
@@ -116,7 +116,7 @@ int set_ctm(Display *dpy, RROutput output, double *coeffs);
  * @param coeffs double array of size 9. Will hold the coefficients.
  * @return X-defined return code (See get_output_blob())
  */
-static int get_ctm(Display *dpy, RROutput output, double *coeffs);
+static int vibrant_get_ctm(Display *dpy, RROutput output, double *coeffs);
 
 /**
  * Get saturation of output in human readable format.
@@ -127,7 +127,7 @@ static int get_ctm(Display *dpy, RROutput output, double *coeffs);
  * @param x_status X-defined return code (See get_ctm())
  * @return Saturation of output
  */
-double get_saturation_ctm(Display *dpy, RROutput output, int *x_status);
+double vibrant_get_saturation_ctm(Display *dpy, RROutput output, int *x_status);
 
 /**
  * Get saturation of output in human readable format.
@@ -138,7 +138,7 @@ double get_saturation_ctm(Display *dpy, RROutput output, int *x_status);
  * @param saturation Saturation of output
  * @param x_status X-defined return code (See get_ctm())
  */
-void set_saturation_ctm(Display *dpy, RROutput output, double saturation,
+void vibrant_set_saturation_ctm(Display *dpy, RROutput output, double saturation,
                         int *x_status);
 
 /**
@@ -148,7 +148,7 @@ void set_saturation_ctm(Display *dpy, RROutput output, double saturation,
  * @param output RandR output to get the information from
  * @return 1 if it has a property, 0 if it doesn't or X doesn't support it
  */
-int output_has_ctm(Display *dpy, RROutput output);
+int vibrant_output_has_ctm(Display *dpy, RROutput output);
 
 #ifdef __cplusplus
 }

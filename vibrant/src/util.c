@@ -61,7 +61,7 @@
  * @param coeffs Double array with a length of 9, holding the coefficients
  * will be placed here.
  */
-static void saturation_to_coeffs(const double saturation, double *coeffs) {
+static void vibrant_saturation_to_coeffs(const double saturation, double *coeffs) {
     double coeff = (1.0 - saturation) / 3.0;
     for (int i = 0; i < 9; i++) {
         /* set coefficients. If index is divisible by four (0, 4, 8) add
@@ -77,7 +77,7 @@ static void saturation_to_coeffs(const double saturation, double *coeffs) {
  * @param coeffs Double array with a length of 9, holding the coefficients
  * @return Saturation value generally between 0.0 and 4.0
  */
-static double coeffs_to_saturation(const double *coeffs) {
+static double vibrant_coeffs_to_saturation(const double *coeffs) {
     /*
      * When calculating the coefficients we add the saturation value to the
      * coefficients with indices 0, 4, 8. This means we can just subtract
@@ -96,7 +96,7 @@ static double coeffs_to_saturation(const double *coeffs) {
  * @param ctm DRM CTM struct, used to create the blob. The translated values
  * will be placed here.
  */
-static void translate_coeffs_to_ctm(const double *coeffs,
+static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
                                     struct drm_color_ctm *ctm) {
     int i;
     for (i = 0; i < 9; i++) {
@@ -120,7 +120,7 @@ static void translate_coeffs_to_ctm(const double *coeffs,
  * @param padded_ctm Padded color CTM formatted input
  * @param coeffs Translated coefficients will be placed here.
  */
-static void translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
+static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
                                            double *coeffs) {
     int i;
 
@@ -141,7 +141,7 @@ static void translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
     }
 }
 
-static void print_ctm_coeffs(double ctm_coeffs[9], double saturation) {
+static void vibrant_print_ctm_coeffs(double ctm_coeffs[9], double saturation) {
     printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
            ctm_coeffs[2]);
     printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],

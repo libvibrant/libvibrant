@@ -148,11 +148,11 @@ int main(int argc, char *const argv[]) {
         printf("Cannot find output %s.\n", output_name);
         x_status = BadRequest;
     } else {
-        if (output_has_ctm(dpy, output)) {
-            get_saturation(dpy, output, &x_status);
+        if (vibrant_output_has_ctm(dpy, output)) {
+            vibrant_get_saturation(dpy, output, &x_status);
             if (saturation_opt != NULL) {
                 // set saturation
-                set_saturation(dpy, output, saturation, &x_status);
+                vibrant_set_saturation(dpy, output, saturation, &x_status);
             }
         } else {
             printf("Output does not support saturation.\n");
