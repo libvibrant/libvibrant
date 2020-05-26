@@ -62,7 +62,7 @@ extern "C" {
  * @param x_status
  * @return
  */
-double get_saturation(Display *dpy, RROutput output, int *x_status);
+double vibrant_get_saturation(Display *dpy, RROutput output, int *x_status);
 
 /**
  * See set_saturation_ctm
@@ -71,7 +71,7 @@ double get_saturation(Display *dpy, RROutput output, int *x_status);
  * @param x_status
  * @return
  */
-void set_saturation(Display *dpy, RROutput output, double saturation,
+void vibrant_set_saturation(Display *dpy, RROutput output, double saturation,
                     int *x_status);
 
 
