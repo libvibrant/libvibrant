@@ -61,7 +61,8 @@
  * @param coeffs Double array with a length of 9, holding the coefficients
  * will be placed here.
  */
-static void vibrant_saturation_to_coeffs(const double saturation, double *coeffs) {
+static void
+vibrant_saturation_to_coeffs(const double saturation, double *coeffs) {
     double coeff = (1.0 - saturation) / 3.0;
     for (int i = 0; i < 9; i++) {
         /* set coefficients. If index is divisible by four (0, 4, 8) add
@@ -97,7 +98,7 @@ static double vibrant_coeffs_to_saturation(const double *coeffs) {
  * will be placed here.
  */
 static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
-                                    struct drm_color_ctm *ctm) {
+                                            struct drm_color_ctm *ctm) {
     int i;
     for (i = 0; i < 9; i++) {
         if (coeffs[i] < 0) {
@@ -121,7 +122,7 @@ static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
  * @param coeffs Translated coefficients will be placed here.
  */
 static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
-                                           double *coeffs) {
+                                                   double *coeffs) {
     int i;
 
     for (i = 0; i < 18; i += 2) {
@@ -141,6 +142,11 @@ static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
     }
 }
 
+/**
+ * Print coefficients in a nice way.
+ * @param ctm_coeffs coefficients to print
+ * @param saturation saturation to print
+ */
 static void vibrant_print_ctm_coeffs(double ctm_coeffs[9], double saturation) {
     printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
            ctm_coeffs[2]);

@@ -45,9 +45,12 @@
  *
  */
 
+#include <glob.h>
+#include <stdio.h>
 #include <stdint.h>
 
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include <X11/extensions/Xrandr.h>
 
 #ifndef VIBRANT_CTM_H
@@ -73,8 +76,9 @@ extern "C" {
  * @param blob_bytes Size of the data, in bytes
  * @return X-defined return code
  */
-int vibrant_set_output_blob(Display *dpy, RROutput output, const char *prop_name,
-                    void *blob_data, size_t blob_bytes);
+int vibrant_set_output_blob(Display *dpy, RROutput output,
+                            const char *prop_name, void *blob_data,
+                            size_t blob_bytes);
 
 /**
  * Get a DRM blob property on the given output.
@@ -90,11 +94,11 @@ int vibrant_set_output_blob(Display *dpy, RROutput output, const char *prop_name
  * @param dpy The X Display
  * @param output RandR output to set the property on
  * @param prop_name String name of the property
- * @param blob_data The data of the property blob. The output will be put here.
+ * @param blob_data The data of the propeYrty blob. The output will be put here.
  * @return X-defined return code
  */
-int vibrant_get_output_blob(Display *dpy, RROutput output, const char *prop_name,
-                    uint64_t *blob_data);
+int vibrant_get_output_blob(Display *dpy, RROutput output,
+                            const char *prop_name, uint64_t *blob_data);
 
 /**
  * Create a DRM color transform matrix using the given coefficients, and set
@@ -138,8 +142,8 @@ double vibrant_get_saturation_ctm(Display *dpy, RROutput output, int *x_status);
  * @param saturation Saturation of output
  * @param x_status X-defined return code (See get_ctm())
  */
-void vibrant_set_saturation_ctm(Display *dpy, RROutput output, double saturation,
-                        int *x_status);
+void vibrant_set_saturation_ctm(Display *dpy, RROutput output,
+                                double saturation, int *x_status);
 
 /**
  * Check if output has the CTM property.

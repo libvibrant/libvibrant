@@ -72,7 +72,7 @@ double vibrant_get_saturation(Display *dpy, RROutput output, int *x_status);
  * @return
  */
 void vibrant_set_saturation(Display *dpy, RROutput output, double saturation,
-                    int *x_status);
+                            int *x_status);
 
 
 #ifdef __cplusplus

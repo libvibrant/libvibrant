@@ -45,14 +45,6 @@
  *
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-#include <X11/extensions/Xrandr.h>
-
 #include "util.c"
 #include "utilx.c"
 
@@ -61,8 +53,9 @@
 #define RANDR_FORMAT 32u
 #define PROP_CTM "CTM"
 
-int vibrant_set_output_blob(Display *dpy, RROutput output, const char *prop_name,
-                    void *blob_data, size_t blob_bytes) {
+int vibrant_set_output_blob(Display *dpy, RROutput output,
+                            const char *prop_name, void *blob_data,
+                            size_t blob_bytes) {
     Atom prop_atom;
     XRRPropertyInfo *prop_info;
 
@@ -101,8 +94,8 @@ int vibrant_set_output_blob(Display *dpy, RROutput output, const char *prop_name
     return Success;
 }
 
-int vibrant_get_output_blob(Display *dpy, RROutput output, const char *prop_name,
-                    uint64_t *blob_data) {
+int vibrant_get_output_blob(Display *dpy, RROutput output,
+                            const char *prop_name, uint64_t *blob_data) {
 
     int ret, actual_format;
     unsigned long n_items, bytes_after;
@@ -151,7 +144,7 @@ int vibrant_set_ctm(Display *dpy, RROutput output, double *coeffs) {
 
     int i, ret;
 
-    translate_coeffs_to_ctm(coeffs, &ctm);
+    vibrant_translate_coeffs_to_ctm(coeffs, &ctm);
 
     /* Workaround:
      *
@@ -178,7 +171,8 @@ int vibrant_set_ctm(Display *dpy, RROutput output, double *coeffs) {
         // Think of this as a padded 'memcpy()'.
         padded_ctm[i] = ((uint32_t *) ctm.matrix)[i];
 
-    ret = set_output_blob(dpy, output, PROP_CTM, &padded_ctm, blob_size);
+    ret = vibrant_set_output_blob(dpy, output, PROP_CTM, &padded_ctm,
+                                  blob_size);
 
     if (ret)
         printf("Failed to set CTM. %d\n", ret);
@@ -189,13 +183,14 @@ int vibrant_get_ctm(Display *dpy, RROutput output, double *coeffs) {
     uint64_t padded_ctm[18];
     int ret;
 
-    ret = get_output_blob(dpy, output, PROP_CTM, padded_ctm);
+    ret = vibrant_get_output_blob(dpy, output, PROP_CTM, padded_ctm);
 
-    translate_padded_ctm_to_coeffs(padded_ctm, coeffs);
+    vibrant_translate_padded_ctm_to_coeffs(padded_ctm, coeffs);
     return ret;
 }
 
-double vibrant_get_saturation_ctm(Display *dpy, RROutput output, int *x_status) {
+double vibrant_get_saturation_ctm(Display *dpy, RROutput output,
+                                  int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
@@ -203,18 +198,18 @@ double vibrant_get_saturation_ctm(Display *dpy, RROutput output, int *x_status) 
      */
     double ctm_coeffs[9];
 
-    *x_status = get_ctm(dpy, output, ctm_coeffs);
+    *x_status = vibrant_get_ctm(dpy, output, ctm_coeffs);
 
-    double saturation = coeffs_to_saturation(ctm_coeffs);
+    double saturation = vibrant_coeffs_to_saturation(ctm_coeffs);
 
     printf("Current CTM:\n");
-    print_ctm_coeffs(ctm_coeffs, saturation);
+    vibrant_print_ctm_coeffs(ctm_coeffs, saturation);
 
     return saturation;
 }
 
-void vibrant_set_saturation_ctm(Display *dpy, RROutput output, double saturation,
-                        int *x_status) {
+void vibrant_set_saturation_ctm(Display *dpy, RROutput output,
+                                double saturation, int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
@@ -223,14 +218,14 @@ void vibrant_set_saturation_ctm(Display *dpy, RROutput output, double saturation
     double ctm_coeffs[9];
 
     // convert saturation to ctm coefficients
-    saturation_to_coeffs(saturation, ctm_coeffs);
+    vibrant_saturation_to_coeffs(saturation, ctm_coeffs);
 
     printf("New CTM:\n");
-    print_ctm_coeffs(ctm_coeffs, saturation);
+    vibrant_print_ctm_coeffs(ctm_coeffs, saturation);
 
-    *x_status = set_ctm(dpy, output, ctm_coeffs);
+    *x_status = vibrant_set_ctm(dpy, output, ctm_coeffs);
 }
 
 int vibrant_output_has_ctm(Display *dpy, RROutput output) {
-    return output_has_property(dpy, output, PROP_CTM);
+    return vibrant_output_has_property(dpy, output, PROP_CTM);
 }
