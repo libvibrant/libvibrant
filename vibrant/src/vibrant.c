@@ -55,8 +55,8 @@ double vibrant_get_saturation(Display *dpy, RROutput output, int *x_status) {
      * Perhaps libXNVCtrl for NVIDIA.
      */
 
-    if (output_has_ctm(dpy, output))
-        return get_saturation_ctm(dpy, output, x_status);
+    if (vibrant_output_has_ctm(dpy, output))
+        return vibrant_get_saturation_ctm(dpy, output, x_status);
 
     *x_status = BadRequest;
     return 0.0;
@@ -70,8 +70,8 @@ void vibrant_set_saturation(Display *dpy, RROutput output, double saturation,
      * Perhaps libXNVCtrl for NVIDIA.
      */
 
-    if (output_has_ctm(dpy, output))
-        set_saturation_ctm(dpy, output, saturation, x_status);
+    if (vibrant_output_has_ctm(dpy, output))
+        vibrant_set_saturation_ctm(dpy, output, saturation, x_status);
     else
         *x_status = BadRequest;
 }
