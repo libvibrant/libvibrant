@@ -112,8 +112,16 @@ int main(int argc, char *const argv[]) {
     }
 
     vibrant_instance *instance;
-    if(vibrant_instance_new(&instance, NULL)){
-        puts("Failed to allocate memory for vibrant controller");
+    vibrant_errors err;
+    if((err = vibrant_instance_new(&instance, NULL)) != vibrant_NoError){
+        switch(err){
+            case vibrant_ConnectToX:
+                puts("Failed to connect to default x server");
+                break;
+            case vibrant_NoMem:
+                puts("Failed to allocate memory for vibrant controller");
+                break;
+        }
 
         return EXIT_FAILURE;
     }
