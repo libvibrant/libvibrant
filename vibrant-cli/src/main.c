@@ -53,7 +53,6 @@
 #include <X11/extensions/Xrandr.h>
 
 #include <vibrant/vibrant.h>
-#include <vibrant/ctm.h>
 
 #ifndef VIBRANT_VERSION
 #define VIBRANT_VERSION "Unknown"
@@ -68,24 +67,15 @@
  * @param name The output name to search for
  * @return The RandR-Output X-ID if found, 0 (None) otherwise
  */
-static RROutput find_output_by_name(Display *dpy, XRRScreenResources *res,
-                                    const char *name) {
-    int i, cmp;
-    RROutput ret;
-    XRROutputInfo *output_info;
-
-    for (i = 0; i < res->noutput; i++) {
-        ret = res->outputs[i];
-        output_info = XRRGetOutputInfo(dpy, res, ret);
-
-        cmp = strcmp(name, output_info->name);
-        XRRFreeOutputInfo(output_info);
-
-        if (!cmp) {
-            return ret;
+static vibrant_controller* find_output_by_name(vibrant_controller *controllers, size_t controllers_size,
+        const char *name) {
+    for(size_t i = 0; i < controllers_size; i++){
+        if(strcmp(name, controllers[i].info->name) == 0){
+            return controllers+i;
         }
     }
-    return 0;
+
+    return NULL;
 }
 
 
@@ -99,70 +89,59 @@ int main(int argc, char *const argv[]) {
     char *text;
     double saturation;
 
-    // Values needed for libXRandR
-    Display *dpy;
-    Window root;
-    XRRScreenResources *res;
-    RROutput output;
-
     printf("vibrant version %s\n", VIBRANT_VERSION);
-
 
     // Parse arguments
     if (argc < 2) {
         printf("Usage: %s OUTPUT [SATURATION]\n", argv[0]);
-        return 1;
+
+        return EXIT_FAILURE;
     }
     output_name = argv[1];
     if (argc > 2) {
         saturation_opt = argv[2];
-
         saturation = strtod(saturation_opt, &text);
 
-        if (strlen(text) > 0 || saturation < 0.0 || saturation > 4.0) {
+        //text will be set to saturation_opt if strtod fails to convert
+        if (text == saturation_opt || saturation < 0.0 || saturation > 4.0) {
             printf("SATURATION value must be greater than or equal to 0.0 "
                    "and less than or equal to 4.0.\n");
-            return 1;
+
+            return EXIT_FAILURE;
         }
     }
 
-    /*
-     * Open the default X display and window, then obtain the RandR screen
-     * resource. Note that the DISPLAY environment variable must exist.
-     */
-    dpy = XOpenDisplay(NULL);
-    if (!dpy) {
-        printf("No display specified, check the DISPLAY environment "
-               "variable.\n");
-        return 1;
+    vibrant_instance *instance;
+    if(vibrant_instance_new(&instance, NULL)){
+        puts("Failed to allocate memory for vibrant controller");
+
+        return EXIT_FAILURE;
     }
 
-    root = DefaultRootWindow(dpy);
-    res = XRRGetScreenResourcesCurrent(dpy, root);
+    vibrant_controller *controllers;
+    size_t controllers_size;
+    vibrant_instance_get_controllers(instance, &controllers, &controllers_size);
 
     /* RandR needs to know which output we're setting the property on.
      * Since we only have a name to work with, find the RROutput using the
      * name. */
-    output = find_output_by_name(dpy, res, output_name);
-    if (!output) {
-        printf("Cannot find output %s.\n", output_name);
+    vibrant_controller *output = find_output_by_name(controllers, controllers_size, output_name);
+    if (output == NULL) {
+        printf("Cannot find output %s in the list of supported outputs, it either does not exist or is not supported\n", output_name);
         x_status = BadRequest;
-    } else {
-        if (vibrant_output_has_ctm(dpy, output)) {
-            vibrant_get_saturation(dpy, output, &x_status);
-            if (saturation_opt != NULL) {
-                // set saturation
-                vibrant_set_saturation(dpy, output, saturation, &x_status);
-            }
-        } else {
-            printf("Output does not support saturation.\n");
-            x_status = BadValue;
+    }
+    else {
+        if (saturation_opt != NULL) {
+            vibrant_controller_set_saturation(output, saturation);
+            printf("Set saturation of %s to %f\n", output_name, saturation);
+        }
+        else{
+            saturation = vibrant_controller_get_saturation(output);
+            printf("Saturation of %s is %f\n", output_name, saturation);
         }
     }
 
-    /* Ensure proper cleanup */
-    XRRFreeScreenResources(res);
-    XCloseDisplay(dpy);
+    vibrant_instance_free(&instance);
 
-    return x_status;
+    return EXIT_SUCCESS;
 }
