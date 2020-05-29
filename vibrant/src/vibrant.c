@@ -175,7 +175,7 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *dis
     */
     for(size_t i = 0; i < controllers_size;){
         if(controllers[i].priv->backend == Unknown){
-            if(output_has_ctm(dpy, controllers[i].output)){
+            if(ctm_output_has_ctm(dpy, controllers[i].output)){
                 controllers[i].priv->backend = CTM;
                 controllers[i].priv->get_saturation = ctmctrl_get_saturation;
                 controllers[i].priv->set_saturation = ctmctrl_set_saturation;
@@ -206,7 +206,7 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *dis
         return vibrant_NoMem;
     }
 
-    **instance = (vibrant_instance) {dpy, controllers, controllers};
+    **instance = (vibrant_instance) {dpy, controllers, controllers_size};
     XRRFreeScreenResources(resources);
 
     return vibrant_NoError;

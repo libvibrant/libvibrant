@@ -280,7 +280,7 @@ void ctm_set_saturation(Display *dpy, RROutput output, double saturation,
     }
 }
 
-int vibrant_output_has_ctm(Display *dpy, RROutput output) {
+int ctm_output_has_ctm(Display *dpy, RROutput output) {
     Atom prop_atom;
 
     // Find the X Atom associated with the property name

@@ -89,7 +89,7 @@ void ctm_set_saturation(Display *dpy, RROutput output, double saturation,
  * @param output RandR output to get the information from
  * @return 1 if it has a property, 0 if it doesn't or X doesn't support it
  */
-int output_has_ctm(Display *dpy, RROutput output);
+int ctm_output_has_ctm(Display *dpy, RROutput output);
 
 #ifdef __cplusplus
 }
