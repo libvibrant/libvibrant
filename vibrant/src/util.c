@@ -140,13 +140,3 @@ static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
         coeffs[i / 2] = ctm_d;
     }
 }
-
-static void vibrant_print_ctm_coeffs(double ctm_coeffs[9], double saturation) {
-    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
-           ctm_coeffs[2]);
-    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
-           ctm_coeffs[5]);
-    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
-           ctm_coeffs[8]);
-    printf("S:\t%2.4f\n", saturation);
-}
