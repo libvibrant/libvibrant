@@ -54,7 +54,6 @@
 #include <X11/extensions/Xrandr.h>
 
 #include "util.c"
-#include "utilx.c"
 
 #include "vibrant/ctm.h"
 
