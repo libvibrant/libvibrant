@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrancy of X11 output
+ * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
  * Copyright (C) 2020  zee
  *
@@ -48,12 +48,11 @@
 // user code should NOT include this header directly, just use the interfaces
 // provided through vibrant.h
 
-#include <stdint.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-#ifndef LIBVIBRANT_CTM_H
-#define LIBVIBRANT_CTM_H
+#ifndef VIBRANT_CTM_H
+#define VIBRANT_CTM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,7 +66,7 @@ struct drm_color_ctm {
      * Conversion matrix in S31.32 sign-magnitude
      * (not two's complement!) format.
      */
-    uint64_t matrix[9];
+    u_int64_t matrix[9];
 };
 
 /**
@@ -79,7 +78,7 @@ struct drm_color_ctm {
  * @param x_status X-defined return code (See get_ctm())
  * @return Saturation of output
  */
-double ctm_get_saturation(Display *dpy, RROutput output, int32_t *x_status);
+double ctm_get_saturation(Display *dpy, RROutput output, int *x_status);
 
 /**
  * Get saturation of output in human readable format.
@@ -91,7 +90,7 @@ double ctm_get_saturation(Display *dpy, RROutput output, int32_t *x_status);
  * @param x_status X-defined return code (See get_ctm())
  */
 void ctm_set_saturation(Display *dpy, RROutput output,
-                        double saturation, int32_t *x_status);
+                        double saturation, int *x_status);
 
 /**
  * Check if output has the CTM property.
@@ -100,9 +99,9 @@ void ctm_set_saturation(Display *dpy, RROutput output,
  * @param output RandR output to get the information from
  * @return 1 if it has a property, 0 if it doesn't or X doesn't support it
  */
-int32_t ctm_output_has_ctm(Display *dpy, RROutput output);
+int ctm_output_has_ctm(Display *dpy, RROutput output);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-#endif // LIBVIBRANT_CTM_H
+#endif // VIBRANT_CTM_H

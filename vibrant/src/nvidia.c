@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrancy of X11 output
+ * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,9 +21,8 @@
 #include <NVCtrl/NVCtrlLib.h>
 #include <float.h>
 
-
-double nvidia_get_saturation(Display *dpy, int32_t id) {
-    int32_t nv_saturation;
+double nvidia_get_saturation(Display *dpy, int id) {
+    int nv_saturation;
     double saturation;
     XNVCTRLQueryTargetAttribute(dpy, NV_CTRL_TARGET_TYPE_DISPLAY, id, 0,
                                 NV_CTRL_DIGITAL_VIBRANCE, &nv_saturation);
@@ -37,8 +36,8 @@ double nvidia_get_saturation(Display *dpy, int32_t id) {
     return saturation;
 }
 
-void nvidia_set_saturation(Display *dpy, int32_t id, double saturation) {
-    int32_t nv_saturation;
+void nvidia_set_saturation(Display *dpy, int id, double saturation) {
+    int nv_saturation;
     //is saturation roughly in [0.0, 1.0]
     if (saturation >= 0.0 && saturation <= 1.0 + DBL_EPSILON) {
         nv_saturation = saturation * 1024 - 1024;

@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrancy of X11 output
+ * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
  * Copyright (C) 2020  zee
  *
@@ -50,10 +50,10 @@
 #include "vibrant/ctm.h"
 #include "vibrant/nvidia.h"
 
+#include <NVCtrl/NVCtrlLib.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <NVCtrl/NVCtrlLib.h>
 
 typedef double (*vibrant_get_saturation_fn)(vibrant_controller *);
 
@@ -78,7 +78,7 @@ typedef struct vibrant_controller_internal {
 
     // only applied if this display is an nvidia display,
     // otherwise this is set to -1
-    int32_t nvId;
+    int nvId;
 
     vibrant_get_saturation_fn get_saturation;
     vibrant_set_saturation_fn set_saturation;
@@ -176,10 +176,10 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
     // this loop marks every display in our controllers array with its
     // nvidia id if it has one.
     if (has_nvidia) {
-        for (int32_t i = 0; i < ScreenCount(dpy); i++) {
+        for (int i = 0; i < ScreenCount(dpy); i++) {
             if (XNVCTRLIsNvScreen(dpy, i)) {
-                int32_t *nvDpyIds;
-                int32_t nvDpyIdsLen;
+                int *nvDpyIds;
+                int nvDpyIdsLen;
 
                 /**
                  * nvDpyIdsLen will contain how many bytes are inside of
@@ -190,10 +190,10 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
                 */
                 XNVCTRLQueryBinaryData(dpy, i, 0,
                                        NV_CTRL_BINARY_DATA_DISPLAYS_ENABLED_ON_XSCREEN,
-                                       (uint8_t **) &nvDpyIds,
+                                       (unsigned char **) &nvDpyIds,
                                        &nvDpyIdsLen);
-                for (int32_t j = 1; j <= nvDpyIds[0]; j++) {
-                    int32_t output;
+                for (int j = 1; j <= nvDpyIds[0]; j++) {
+                    int output;
                     XNVCTRLQueryTargetAttribute(dpy,
                                                 NV_CTRL_TARGET_TYPE_DISPLAY,
                                                 nvDpyIds[j], 0,

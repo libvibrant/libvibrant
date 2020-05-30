@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrancy of X11 output
+ * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
  * Copyright (C) 2020  zee
  *

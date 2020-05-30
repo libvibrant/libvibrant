@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrancy of X11 output
+ * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
  * Copyright (C) 2020  zee
  *
@@ -46,11 +46,12 @@
  *
  */
 
+#include <stdio.h>
+#include <stdint.h>
+#include <X11/Xatom.h>
+
 #include "util.c"
 #include "vibrant/ctm.h"
-
-#include <stdio.h>
-#include <X11/Xatom.h>
 
 
 #define RANDR_FORMAT 32u
@@ -73,9 +74,9 @@
  * @param blob_bytes Size of the data, in bytes
  * @return X-defined return code
  */
-int32_t ctm_set_output_blob(Display *dpy, RROutput output,
-                            const char *prop_name, void *blob_data,
-                            size_t blob_bytes) {
+int ctm_set_output_blob(Display *dpy, RROutput output,
+                        const char *prop_name, void *blob_data,
+                        size_t blob_bytes) {
     Atom prop_atom;
     XRRPropertyInfo *prop_info;
 
@@ -105,10 +106,9 @@ int32_t ctm_set_output_blob(Display *dpy, RROutput output,
      *             = blob_bytes / (format / 8)
      *             = blob_bytes / (format >> 3)
      */
-    uint32_t blob_length = blob_bytes / (RANDR_FORMAT >> 3u);
-
     XRRChangeOutputProperty(dpy, output, prop_atom, XA_INTEGER, RANDR_FORMAT,
-                            PropModeReplace, blob_data, blob_length);
+                            PropModeReplace, blob_data,
+                            blob_bytes / (RANDR_FORMAT >> 3u));
     // Call XSync to apply it.
     XSync(dpy, 0);
 
@@ -132,12 +132,12 @@ int32_t ctm_set_output_blob(Display *dpy, RROutput output,
  * @param blob_data The data of the property blob. The output will be put here.
  * @return X-defined return code
  */
-int32_t ctm_get_output_blob(Display *dpy, RROutput output,
-                            const char *prop_name, uint64_t *blob_data) {
+int ctm_get_output_blob(Display *dpy, RROutput output,
+                        const char *prop_name, uint64_t *blob_data) {
 
-    int32_t ret, actual_format;
-    size_t n_items, bytes_after;
-    uint8_t *buffer;
+    int ret, actual_format;
+    unsigned long n_items, bytes_after;
+    unsigned char *buffer;
     Atom prop_atom, actual_type;
     XRRPropertyInfo *prop_info;
 
@@ -162,7 +162,7 @@ int32_t ctm_get_output_blob(Display *dpy, RROutput output,
                                &n_items, &bytes_after, &buffer);
     if (actual_type == XA_INTEGER && actual_format == RANDR_FORMAT &&
         n_items == 18) {
-        for (int32_t i = 0; i < 18; i++) {
+        for (int i = 0; i < 18; i++) {
             /*
              * Due to some restrictions in RandR, array properties of 32-bit format
              * must be of type 'long'. See set_ctm() for details.
@@ -184,12 +184,12 @@ int32_t ctm_get_output_blob(Display *dpy, RROutput output,
  * @param coeffs double array of size 9 containing the coefficients for CTM
  * @return X-defined return code (See set_output_blob())
  */
-int32_t ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
+int ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
     size_t blob_size = sizeof(struct drm_color_ctm);
     struct drm_color_ctm ctm;
-    int64_t padded_ctm[18];
+    long padded_ctm[18];
 
-    int32_t i, ret;
+    int i, ret;
 
     vibrant_translate_coeffs_to_ctm(coeffs, &ctm);
 
@@ -205,7 +205,7 @@ int32_t ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
      * each S31.32 fixed point number within the CTM in two parts: The
      * whole part (S31), and the fractional part (.32). They're then stored
      * (as separate parts) into a long-typed array. Of course, This problem
-     * wouldn't exist if X server accepted 64-bit formats.
+     * wouldn't exist if xserver accepted 64-bit formats.
      *
      * A gotcha here is the endianness of the S31.32 values. The whole part
      * will either come before or after the fractional part. (before in
@@ -235,16 +235,16 @@ int32_t ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
  * @param coeffs double array of size 9. Will hold the coefficients.
  * @return X-defined return code (See get_output_blob())
  */
-int32_t ctm_get_ctm(Display *dpy, RROutput output, double *coeffs) {
+int ctm_get_ctm(Display *dpy, RROutput output, double *coeffs) {
     uint64_t padded_ctm[18];
-    int32_t ret = ctm_get_output_blob(dpy, output, PROP_CTM, padded_ctm);
+    int ret = ctm_get_output_blob(dpy, output, PROP_CTM, padded_ctm);
 
     vibrant_translate_padded_ctm_to_coeffs(padded_ctm, coeffs);
     return ret;
 }
 
 double ctm_get_saturation(Display *dpy, RROutput output,
-                          int32_t *x_status) {
+                          int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
@@ -252,7 +252,7 @@ double ctm_get_saturation(Display *dpy, RROutput output,
      */
     double ctm_coeffs[9];
 
-    int32_t ret = ctm_get_ctm(dpy, output, ctm_coeffs);
+    int ret = ctm_get_ctm(dpy, output, ctm_coeffs);
 
     if (x_status) {
         *x_status = ret;
@@ -262,7 +262,7 @@ double ctm_get_saturation(Display *dpy, RROutput output,
 }
 
 void ctm_set_saturation(Display *dpy, RROutput output,
-                        double saturation, int32_t *x_status) {
+                        double saturation, int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
@@ -272,14 +272,14 @@ void ctm_set_saturation(Display *dpy, RROutput output,
     // convert saturation to ctm coefficients
     vibrant_saturation_to_coeffs(saturation, ctm_coeffs);
 
-    int32_t ret = ctm_set_ctm(dpy, output, ctm_coeffs);
+    int ret = ctm_set_ctm(dpy, output, ctm_coeffs);
 
     if (x_status) {
         *x_status = ret;
     }
 }
 
-int32_t ctm_output_has_ctm(Display *dpy, RROutput output) {
+int ctm_output_has_ctm(Display *dpy, RROutput output) {
     Atom prop_atom;
 
     // Find the X Atom associated with the property name
