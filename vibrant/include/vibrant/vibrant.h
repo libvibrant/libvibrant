@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrance of X11 output
+ * vibrant - Adjust color vibrancy of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
  * Copyright (C) 2020  zee
  *
@@ -47,11 +47,12 @@
  */
 
 #include <stdalign.h>
+#include <stdint.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
-#ifndef VIBRANT_VIBRANT_H
-#define VIBRANT_VIBRANT_H
+#ifndef LIBVIBRANT_VIBRANT_H
+#define LIBVIBRANT_VIBRANT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,7 +90,7 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
         const char *display_name);
 
 /**
- * Deinitializes instance by closing its X connection and freeing its allocated
+ * Deinits instance by closing its X connection and freeing its allocated
  * memory.
  * @param instance
  */
@@ -127,4 +128,4 @@ void vibrant_controller_set_saturation(vibrant_controller *controller,
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-#endif // VIBRANT_VIBRANT_H
+#endif // LIBVIBRANT_VIBRANT_H

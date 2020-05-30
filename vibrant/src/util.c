@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrance of X11 output
+ * vibrant - Adjust color vibrancy of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
  * Copyright (C) 2020  zee
  *
@@ -45,11 +45,10 @@
  * Authors: AMD
  *
  */
+#include <vibrant/ctm.h>
 
 #include <math.h>
-#include <stdint.h>
 
-#include <vibrant/ctm.h>
 
 /**
  * Generate CTM coefficients from double value.
@@ -64,7 +63,7 @@
 static void
 vibrant_saturation_to_coeffs(const double saturation, double *coeffs) {
     double coeff = (1.0 - saturation) / 3.0;
-    for (int i = 0; i < 9; i++) {
+    for (int32_t i = 0; i < 9; i++) {
         /* set coefficients. If index is divisible by four (0, 4, 8) add
          * saturation to coeff
          */
@@ -92,22 +91,21 @@ static double vibrant_coeffs_to_saturation(const double *coeffs) {
  * Translate CTM coefficients to a color CTM format that DRM accepts.
  *
  * DRM requires the CTM to be in signed-magnitude, not 2's complement.
- * It is also in 32.32 fixed-point format.
+ * It is also in 31.32 fixed-point format.
  * @param coeffs Input coefficients
  * @param ctm DRM CTM struct, used to create the blob. The translated values
  * will be placed here.
  */
 static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
                                             struct drm_color_ctm *ctm) {
-    int i;
-    for (i = 0; i < 9; i++) {
+    for (int32_t i = 0; i < 9; i++) {
         if (coeffs[i] < 0) {
             ctm->matrix[i] =
-                    (int64_t) (-coeffs[i] * ((uint64_t) 1L << 32u));
+                    (uint64_t) (-coeffs[i] * ((uint64_t) 1L << 32u));
             ctm->matrix[i] |= 1ULL << 63u;
         } else
             ctm->matrix[i] =
-                    (int64_t) (coeffs[i] * ((uint64_t) 1L << 32u));
+                    (uint64_t) (coeffs[i] * ((uint64_t) 1L << 32u));
     }
 }
 
@@ -115,7 +113,7 @@ static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
  * Translate padded color CTM format back to coefficients.
  *
  * DRM requires the CTM to be in signed-magnitude, not 2's complement.
- * It is also in 32.32 fixed-point format.
+ * It is also in 31.32 fixed-point format.
  * This translates them back to handy-dandy doubles.
  *
  * @param padded_ctm Padded color CTM formatted input
@@ -123,9 +121,7 @@ static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
  */
 static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
                                                    double *coeffs) {
-    int i;
-
-    for (i = 0; i < 18; i += 2) {
+    for (int32_t i = 0; i < 18; i += 2) {
         uint32_t ctm1 = padded_ctm[i];
         uint32_t ctm2 = padded_ctm[i + 1];
 
@@ -141,4 +137,3 @@ static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
         coeffs[i / 2] = ctm_d;
     }
 }
-

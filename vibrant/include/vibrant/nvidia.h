@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrance of X11 output
+ * vibrant - Adjust color vibrancy of X11 output
  * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,10 +22,11 @@
 #ifndef LIBVIBRANT_NVIDIA_H
 #define LIBVIBRANT_NVIDIA_H
 
+#include <stdint.h>
 #include <X11/Xlib.h>
 
-double nvidia_get_saturation(Display *dpy, int id);
+double nvidia_get_saturation(Display *dpy, int32_t id);
 
-void nvidia_set_saturation(Display *dpy, int id, double saturation);
+void nvidia_set_saturation(Display *dpy, int32_t id, double saturation);
 
 #endif //LIBVIBRANT_NVIDIA_H
