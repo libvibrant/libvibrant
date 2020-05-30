@@ -61,13 +61,13 @@ extern "C" {
 typedef struct vibrant_instance vibrant_instance;
 struct vibrant_controller_internal;
 
-typedef enum vibrant_errors{
+typedef enum vibrant_errors {
     vibrant_NoError,
     vibrant_ConnectToX,
     vibrant_NoMem
 } vibrant_errors;
 
-typedef struct vibrant_controller{
+typedef struct vibrant_controller {
     RROutput output;
     XRROutputInfo *info;
     //copy of display of the owning vibrant_instance
@@ -85,7 +85,8 @@ typedef struct vibrant_controller{
  * connecting to display_name failed, or vibrant_NoMem if memory allocation
  * failed
  */
-vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *display_name);
+vibrant_errors vibrant_instance_new(vibrant_instance **instance,
+        const char *display_name);
 
 /**
  * Deinitializes instance by closing its X connection and freeing its allocated
@@ -100,7 +101,9 @@ void vibrant_instance_free(vibrant_instance **instance);
  * @param controllers
  * @param length
  */
-void vibrant_instance_get_controllers(vibrant_instance *instance, vibrant_controller **controllers, size_t *length);
+void vibrant_instance_get_controllers(vibrant_instance *instance,
+                                      vibrant_controller **controllers,
+                                      size_t *length);
 
 /**
  * Returns a double in the range of [0.0, 4.0] representing the current
@@ -117,7 +120,8 @@ double vibrant_controller_get_saturation(vibrant_controller *controller);
  * @param controller
  * @param saturation
  */
-void vibrant_controller_set_saturation(vibrant_controller *controller, double saturation);
+void vibrant_controller_set_saturation(vibrant_controller *controller,
+                                       double saturation);
 
 
 #ifdef __cplusplus
