@@ -37,6 +37,25 @@ $ vibrant-cli DisplayPort-0 1
 $ vibrant-cli DisplayPort-0
 ```
 
+# Compatibility
+vibrant supports most modern GPUs.
+## AMD GPUs
+- Your card needs to be supported by the AMD Display Code kernel driver
+
+## NVIDIA GPUs
+- Currently only the NVIDIA proprietary driver is supported
+- Support is handled by libXNVCtrl, which should be bundled with most installations of the driver
+
+## Confirmed working
+- NVIDIA GeForce GTX 660
+- Radeon RX 5700 XT
+- Radeon RX 5600 XT
+- Radeon VII
+- Radeon RX Vega 56
+- Radeon RX 580
+- Radeon RX 470
+- Radeon R9 270
+
 # Installation
 ## Arch Linux
 vibrant is available on the Arch Linux User Repository, maintained by me.
@@ -48,6 +67,12 @@ See [Bulding](#Building)
 
 # Building
 This project uses CMake.
+
+## Dependencies
+- libdrm
+- libX11
+- libXrandr (possibly bundled with libX11)
+- libXNVCtrl (possibly bundled with nvidia-settings)
 
 ## Basic building
 ```bash
