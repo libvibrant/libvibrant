@@ -40,7 +40,7 @@ double nvidia_get_saturation(Display *dpy, int32_t id) {
 void nvidia_set_saturation(Display *dpy, int32_t id, double saturation) {
     int32_t nv_saturation;
     //is saturation roughly in [0.0, 1.0]
-    if (saturation > 0.0 && saturation < 1.0 + DBL_EPSILON) {
+    if (saturation >= 0.0 && saturation <= 1.0 + DBL_EPSILON) {
         nv_saturation = saturation * 1024 - 1024;
     } else {
         nv_saturation = (saturation * 1023 - 1023) / 3;
