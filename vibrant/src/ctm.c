@@ -237,9 +237,7 @@ int ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
  */
 int ctm_get_ctm(Display *dpy, RROutput output, double *coeffs) {
     uint64_t padded_ctm[18];
-    int ret;
-
-    ret = ctm_get_output_blob(dpy, output, PROP_CTM, padded_ctm);
+    int ret = ctm_get_output_blob(dpy, output, PROP_CTM, padded_ctm);
 
     vibrant_translate_padded_ctm_to_coeffs(padded_ctm, coeffs);
     return ret;
@@ -254,12 +252,13 @@ double ctm_get_saturation(Display *dpy, RROutput output,
      */
     double ctm_coeffs[9];
 
-    if (x_status) {
-        *x_status = ctm_get_ctm(dpy, output, ctm_coeffs);
-    }
-    double saturation = vibrant_coeffs_to_saturation(ctm_coeffs);
+    int ret = ctm_get_ctm(dpy, output, ctm_coeffs);
 
-    return saturation;
+    if (x_status) {
+        *x_status = ret;
+    }
+
+    return vibrant_coeffs_to_saturation(ctm_coeffs);
 }
 
 void ctm_set_saturation(Display *dpy, RROutput output,
@@ -273,8 +272,10 @@ void ctm_set_saturation(Display *dpy, RROutput output,
     // convert saturation to ctm coefficients
     vibrant_saturation_to_coeffs(saturation, ctm_coeffs);
 
+    int ret = ctm_set_ctm(dpy, output, ctm_coeffs);
+
     if (x_status) {
-        *x_status = ctm_set_ctm(dpy, output, ctm_coeffs);
+        *x_status = ret;
     }
 }
 
