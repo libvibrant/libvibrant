@@ -1,6 +1,7 @@
 /*
  * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
+ * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,14 +45,10 @@
  * Authors: AMD
  *
  */
-//user code should NOT include this header directly, just use the interfaces provided through vibrant.h
-
-#include <glob.h>
-#include <stdio.h>
-#include <stdint.h>
+// user code should NOT include this header directly, just use the interfaces
+// provided through vibrant.h
 
 #include <X11/Xlib.h>
-#include <X11/Xatom.h>
 #include <X11/extensions/Xrandr.h>
 
 #ifndef VIBRANT_CTM_H
@@ -62,7 +59,6 @@ extern "C" {
 #endif // __cplusplus
 
 /**
->>>>>>> 01b9f63550d68c41c33a83222a41332cf53a970f
  * Get saturation of output in human readable format.
  * (See saturation_to_coeffs() doc)
  *

@@ -1,6 +1,7 @@
 /*
  * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
+ * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +51,6 @@
 #include <string.h>
 
 #include <X11/Xlib.h>
-#include <X11/extensions/Xrandr.h>
 
 #include <vibrant/vibrant.h>
 
@@ -67,11 +67,12 @@
  * @param name The output name to search for
  * @return The RandR-Output X-ID if found, 0 (None) otherwise
  */
-static vibrant_controller* find_output_by_name(vibrant_controller *controllers, size_t controllers_size,
-        const char *name) {
-    for(size_t i = 0; i < controllers_size; i++){
-        if(strcmp(name, controllers[i].info->name) == 0){
-            return controllers+i;
+static vibrant_controller *
+find_output_by_name(vibrant_controller *controllers, size_t controllers_size,
+                    const char *name) {
+    for (size_t i = 0; i < controllers_size; i++) {
+        if (strcmp(name, controllers[i].info->name) == 0) {
+            return controllers + i;
         }
     }
 
@@ -113,13 +114,15 @@ int main(int argc, char *const argv[]) {
 
     vibrant_instance *instance;
     vibrant_errors err;
-    if((err = vibrant_instance_new(&instance, NULL)) != vibrant_NoError){
-        switch(err){
+    if ((err = vibrant_instance_new(&instance, NULL)) != vibrant_NoError) {
+        switch (err) {
             case vibrant_ConnectToX:
                 puts("Failed to connect to default x server");
                 break;
             case vibrant_NoMem:
                 puts("Failed to allocate memory for vibrant controller");
+                break;
+            default:  // satisfy Clang-tidy
                 break;
         }
 
@@ -133,17 +136,19 @@ int main(int argc, char *const argv[]) {
     /* RandR needs to know which output we're setting the property on.
      * Since we only have a name to work with, find the RROutput using the
      * name. */
-    vibrant_controller *output = find_output_by_name(controllers, controllers_size, output_name);
+    vibrant_controller *output = find_output_by_name(controllers,
+                                                     controllers_size,
+                                                     output_name);
     if (output == NULL) {
-        printf("Cannot find output %s in the list of supported outputs, it either does not exist or is not supported\n", output_name);
+        printf("Cannot find output %s in the list of supported outputs, "
+               "it either does not exist or is not supported\n",
+               output_name);
         x_status = BadRequest;
-    }
-    else {
+    } else {
         if (saturation_opt != NULL) {
             vibrant_controller_set_saturation(output, saturation);
             printf("Set saturation of %s to %f\n", output_name, saturation);
-        }
-        else{
+        } else {
             saturation = vibrant_controller_get_saturation(output);
             printf("Saturation of %s is %f\n", output_name, saturation);
         }

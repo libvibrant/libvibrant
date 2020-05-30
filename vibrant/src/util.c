@@ -1,6 +1,7 @@
 /*
  * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
+ * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +47,6 @@
  */
 
 #include <math.h>
-#include <stdio.h>
 #include <stdint.h>
 
 #include <libdrm/drm_mode.h>  // need drm_color_ctm

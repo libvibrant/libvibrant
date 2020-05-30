@@ -1,6 +1,7 @@
 /*
  * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
+ * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,16 +77,19 @@ typedef struct vibrant_controller{
 } vibrant_controller;
 
 /**
- * initializes a vibrant_instance struct using the X server specified by display_name.
+ * initializes a vibrant_instance struct using the X server specified by
+ * display_name.
  * @param instance
  * @param display_name
- * @return vibrant_NoError if no issues occurred, vibrant_connectToX if connecting to
- * display_name failed, or vibrant_NoMem if memory allocation failed
+ * @return vibrant_NoError if no issues occurred, vibrant_connectToX if
+ * connecting to display_name failed, or vibrant_NoMem if memory allocation
+ * failed
  */
 vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *display_name);
 
 /**
- * deinitializes instance by closing its X connection and freeing its allocated memory.
+ * Deinitializes instance by closing its X connection and freeing its allocated
+ * memory.
  * @param instance
  */
 void vibrant_instance_free(vibrant_instance **instance);
@@ -99,16 +103,17 @@ void vibrant_instance_free(vibrant_instance **instance);
 void vibrant_instance_get_controllers(vibrant_instance *instance, vibrant_controller **controllers, size_t *length);
 
 /**
- * Returns a double in the range of [0.0, 4.0] representing the current saturation.
- * 0.0 being no saturation, 1.0 being the default, and 4.0 being max saturation
+ * Returns a double in the range of [0.0, 4.0] representing the current
+ * saturation. 0.0 being no saturation, 1.0 being the default,
+ * and 4.0 being max saturation
  * @param controller
  */
 double vibrant_controller_get_saturation(vibrant_controller *controller);
 
 /**
  * Sets the the saturation of the display controlled by controller. The accepted
- * value ranges are [0.0, 4.0] with 0.0 being no saturation, 1.0 being the default,
- * and 4.0 being max saturation
+ * value ranges are [0.0, 4.0] with 0.0 being no saturation, 1.0 being the
+ * default, and 4.0 being max saturation
  * @param controller
  * @param saturation
  */

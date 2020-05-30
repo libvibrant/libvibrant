@@ -1,6 +1,7 @@
 /*
  * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
+ * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,14 +46,18 @@
  *
  */
 
-#include "util.c"
+#include <stdio.h>
+#include <stdint.h>
+#include <X11/Xatom.h>
 
+#include "util.c"
 #include "vibrant/ctm.h"
+
 
 #define RANDR_FORMAT 32u
 #define PROP_CTM "CTM"
 
-//keep the *_blob and *_ctm functions in here since user code shouldn't really be interacting with them anyway
+// *_blob and *_ctm functions are private
 /**
  * Set a DRM blob property on the given output. It calls XSync at the end to
  * flush the change request so that it applies.
@@ -70,8 +75,8 @@
  * @return X-defined return code
  */
 int ctm_set_output_blob(Display *dpy, RROutput output,
-                            const char *prop_name, void *blob_data,
-                            size_t blob_bytes) {
+                        const char *prop_name, void *blob_data,
+                        size_t blob_bytes) {
     Atom prop_atom;
     XRRPropertyInfo *prop_info;
 
@@ -128,7 +133,7 @@ int ctm_set_output_blob(Display *dpy, RROutput output,
  * @return X-defined return code
  */
 int ctm_get_output_blob(Display *dpy, RROutput output,
-                            const char *prop_name, uint64_t *blob_data) {
+                        const char *prop_name, uint64_t *blob_data) {
 
     int ret, actual_format;
     unsigned long n_items, bytes_after;
@@ -214,7 +219,7 @@ int ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
         padded_ctm[i] = ((uint32_t *) ctm.matrix)[i];
 
     ret = ctm_set_output_blob(dpy, output, PROP_CTM, &padded_ctm,
-                                  blob_size);
+                              blob_size);
 
     if (ret)
         printf("Failed to set CTM. %d\n", ret);
@@ -241,7 +246,7 @@ int ctm_get_ctm(Display *dpy, RROutput output, double *coeffs) {
 }
 
 double ctm_get_saturation(Display *dpy, RROutput output,
-                                  int *x_status) {
+                          int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
@@ -249,7 +254,7 @@ double ctm_get_saturation(Display *dpy, RROutput output,
      */
     double ctm_coeffs[9];
 
-    if(x_status) {
+    if (x_status) {
         *x_status = ctm_get_ctm(dpy, output, ctm_coeffs);
     }
     double saturation = vibrant_coeffs_to_saturation(ctm_coeffs);
@@ -258,7 +263,7 @@ double ctm_get_saturation(Display *dpy, RROutput output,
 }
 
 void ctm_set_saturation(Display *dpy, RROutput output,
-                                double saturation, int *x_status) {
+                        double saturation, int *x_status) {
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
@@ -268,7 +273,7 @@ void ctm_set_saturation(Display *dpy, RROutput output,
     // convert saturation to ctm coefficients
     vibrant_saturation_to_coeffs(saturation, ctm_coeffs);
 
-    if(x_status) {
+    if (x_status) {
         *x_status = ctm_set_ctm(dpy, output, ctm_coeffs);
     }
 }
