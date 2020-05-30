@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrance of X11 output
+ * vibrant - Adjust color vibrancy of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
  * Copyright (C) 2020  zee
  *
@@ -48,6 +48,10 @@
 
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
+
+#ifndef VIBRANT_VERSION
+#define VIBRANT_VERSION "Unknown"
+#endif
 
 #ifndef LIBVIBRANT_VIBRANT_H
 #define LIBVIBRANT_VIBRANT_H

@@ -1,5 +1,5 @@
 /*
- * vibrant - Adjust color vibrance of X11 output
+ * vibrant - Adjust color vibrancy of X11 output
  * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
