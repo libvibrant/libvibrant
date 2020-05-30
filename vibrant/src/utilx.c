@@ -44,57 +44,34 @@
  * Authors: AMD
  *
  */
-//user code should NOT include this header directly, just use the interfaces provided through vibrant.h
 
-#include <glob.h>
 #include <stdio.h>
-#include <stdint.h>
 
 #include <X11/Xlib.h>
-#include <X11/Xatom.h>
 #include <X11/extensions/Xrandr.h>
 
-#ifndef VIBRANT_CTM_H
-#define VIBRANT_CTM_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
-
 /**
->>>>>>> 01b9f63550d68c41c33a83222a41332cf53a970f
- * Get saturation of output in human readable format.
- * (See saturation_to_coeffs() doc)
- *
- * @param dpy The X Display
- * @param output RandR output to get the saturation from
- * @param x_status X-defined return code (See get_ctm())
- * @return Saturation of output
- */
-double ctm_get_saturation(Display *dpy, RROutput output, int *x_status);
-
-/**
- * Get saturation of output in human readable format.
- * (See saturation_to_coeffs() doc)
- *
- * @param dpy The X Display
- * @param output RandR output to set the saturation on
- * @param saturation Saturation of output
- * @param x_status X-defined return code (See get_ctm())
- */
-void ctm_set_saturation(Display *dpy, RROutput output,
-                        double saturation, int *x_status);
-
-/**
- * Check if output has the CTM property.
+ * Check if output has specified property.
  *
  * @param dpy The X Display
  * @param output RandR output to get the information from
+ * @param property String containing name of property
  * @return 1 if it has a property, 0 if it doesn't or X doesn't support it
  */
-int ctm_output_has_ctm(Display *dpy, RROutput output);
+static int vibrant_output_has_property(Display *dpy, RROutput output, char *property) {
+    Atom prop_atom;
 
-#ifdef __cplusplus
+    // Find the X Atom associated with the property name
+    prop_atom = XInternAtom(dpy, property, 1);
+    if (!prop_atom) {
+        printf("Property key '%s' not found.\n", property);
+        return 0;
+    }
+
+    // Make sure the property exists
+    if (!XRRQueryOutputProperty(dpy, output, prop_atom)) {
+        printf("Property key '%s' not found on output\n", property);
+        return 0;
+    }
+    return 1;
 }
-#endif // __cplusplus
-#endif // VIBRANT_CTM_H

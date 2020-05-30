@@ -113,6 +113,8 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *dis
     }
     size_t controllers_size = resources->noutput;
 
+    //search through all outputs, only keep the ones that are connected
+    size_t connected_count = 0;
     for(size_t i = 0; i < controllers_size; i++){
         XRROutputInfo *info = XRRGetOutputInfo(dpy, resources, resources->outputs[i]);
 
@@ -134,8 +136,31 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *dis
 
             *priv = (vibrant_controller_internal){Unknown, -1};
             controllers[i] = (vibrant_controller) {resources->outputs[i], info, dpy, priv};
+            connected_count++;
+        }
+        else{
+            XRRFreeOutputInfo(info);
         }
     }
+
+    //resize to only include connected displays
+    vibrant_controller *tmp = realloc(controllers, connected_count*sizeof(vibrant_controller));
+    if(tmp == NULL){
+        for(size_t i = 0; i < connected_count; i++){
+            XRRFreeOutputInfo(controllers[i].info);
+            free(controllers[i].priv);
+        }
+
+        XRRFreeScreenResources(resources);
+        XCloseDisplay(dpy);
+        free(controllers);
+        free(*instance);
+
+        return vibrant_NoMem;
+    }
+    controllers = tmp;
+    controllers_size = connected_count;
+
 
     //this loop marks every display in our controllers array with its nvidia id if it has one.
     if(has_nvidia) {
@@ -179,7 +204,6 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *dis
                 controllers[i].priv->backend = CTM;
                 controllers[i].priv->get_saturation = ctmctrl_get_saturation;
                 controllers[i].priv->set_saturation = ctmctrl_set_saturation;
-                i++;
             }
             else{
                 XRRFreeOutputInfo(controllers[i].info);
@@ -187,11 +211,14 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *dis
 
                 memmove(controllers+i, controllers+i+1, sizeof(vibrant_controller)*(controllers_size-i-1));
                 controllers_size--;
+                continue;
             }
         }
+
+        i++;
     }
 
-    vibrant_controller *tmp = realloc(controllers, sizeof(vibrant_controller)*controllers_size);
+    tmp = realloc(controllers, sizeof(vibrant_controller)*controllers_size);
     if(tmp == NULL){
         for(size_t i = 0; i < controllers_size; i++){
             XRRFreeOutputInfo(controllers[i].info);
