@@ -1,6 +1,7 @@
 /*
  * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
+ * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +47,6 @@
  */
 
 #include <math.h>
-#include <stdio.h>
 #include <stdint.h>
 
 #include <libdrm/drm_mode.h>  // need drm_color_ctm
@@ -142,17 +142,3 @@ static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
     }
 }
 
-/**
- * Print coefficients in a nice way.
- * @param ctm_coeffs coefficients to print
- * @param saturation saturation to print
- */
-static void vibrant_print_ctm_coeffs(double ctm_coeffs[9], double saturation) {
-    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[0], ctm_coeffs[1],
-           ctm_coeffs[2]);
-    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[3], ctm_coeffs[4],
-           ctm_coeffs[5]);
-    printf("CTM\t%2.4f:%2.4f:%2.4f\n", ctm_coeffs[6], ctm_coeffs[7],
-           ctm_coeffs[8]);
-    printf("S:\t%2.4f\n", saturation);
-}

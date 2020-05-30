@@ -1,6 +1,7 @@
 /*
  * vibrant - Adjust color vibrance of X11 output
  * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
+ * Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +46,7 @@
  *
  */
 
+#include <stdalign.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 
@@ -55,24 +57,67 @@
 extern "C" {
 #endif // __cplusplus
 
-/**
- * See get_saturation_ctm
- * @param dpy
- * @param output
- * @param x_status
- * @return
- */
-double vibrant_get_saturation(Display *dpy, RROutput output, int *x_status);
+//private structs, users don't need and shouldn't be accessing their data
+typedef struct vibrant_instance vibrant_instance;
+struct vibrant_controller_internal;
+
+typedef enum vibrant_errors{
+    vibrant_NoError,
+    vibrant_ConnectToX,
+    vibrant_NoMem
+} vibrant_errors;
+
+typedef struct vibrant_controller{
+    RROutput output;
+    XRROutputInfo *info;
+    //copy of display of the owning vibrant_instance
+    Display *display;
+
+    struct vibrant_controller_internal *priv;
+} vibrant_controller;
 
 /**
- * See set_saturation_ctm
- * @param dpy
- * @param output
- * @param x_status
- * @return
+ * initializes a vibrant_instance struct using the X server specified by
+ * display_name.
+ * @param instance
+ * @param display_name
+ * @return vibrant_NoError if no issues occurred, vibrant_connectToX if
+ * connecting to display_name failed, or vibrant_NoMem if memory allocation
+ * failed
  */
-void vibrant_set_saturation(Display *dpy, RROutput output, double saturation,
-                            int *x_status);
+vibrant_errors vibrant_instance_new(vibrant_instance **instance, const char *display_name);
+
+/**
+ * Deinitializes instance by closing its X connection and freeing its allocated
+ * memory.
+ * @param instance
+ */
+void vibrant_instance_free(vibrant_instance **instance);
+
+/**
+ * Sets controllers to be a pointer to an array of length controllers
+ * @param instance
+ * @param controllers
+ * @param length
+ */
+void vibrant_instance_get_controllers(vibrant_instance *instance, vibrant_controller **controllers, size_t *length);
+
+/**
+ * Returns a double in the range of [0.0, 4.0] representing the current
+ * saturation. 0.0 being no saturation, 1.0 being the default,
+ * and 4.0 being max saturation
+ * @param controller
+ */
+double vibrant_controller_get_saturation(vibrant_controller *controller);
+
+/**
+ * Sets the the saturation of the display controlled by controller. The accepted
+ * value ranges are [0.0, 4.0] with 0.0 being no saturation, 1.0 being the
+ * default, and 4.0 being max saturation
+ * @param controller
+ * @param saturation
+ */
+void vibrant_controller_set_saturation(vibrant_controller *controller, double saturation);
 
 
 #ifdef __cplusplus
