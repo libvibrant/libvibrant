@@ -49,7 +49,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#include <libdrm/drm_mode.h>  // need drm_color_ctm
+#include <vibrant/ctm.h>
 
 /**
  * Generate CTM coefficients from double value.

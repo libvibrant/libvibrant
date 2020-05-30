@@ -69,7 +69,6 @@ See [Bulding](#Building)
 This project uses CMake.
 
 ## Dependencies
-- libdrm
 - libX11
 - libXrandr (possibly bundled with libX11)
 - libXNVCtrl (possibly bundled with nvidia-settings)

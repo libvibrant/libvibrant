@@ -58,6 +58,17 @@
 extern "C" {
 #endif // __cplusplus
 
+/*
+ * From drm/drm_mode.h
+ */
+struct drm_color_ctm {
+    /*
+     * Conversion matrix in S31.32 sign-magnitude
+     * (not two's complement!) format.
+     */
+    u_int64_t matrix[9];
+};
+
 /**
  * Get saturation of output in human readable format.
  * (See saturation_to_coeffs() doc)
