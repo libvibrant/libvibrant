@@ -145,7 +145,7 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
             }
 
             *priv = (vibrant_controller_internal) {Unknown, -1};
-            controllers[i] = (vibrant_controller) {resources->outputs[i], info,
+            controllers[connected_count] = (vibrant_controller) {resources->outputs[i], info,
                                                    dpy, priv};
             connected_count++;
         } else {
