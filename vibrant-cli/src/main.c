@@ -143,11 +143,9 @@ int main(int argc, char *const argv[]) {
     } else {
         if (saturation_opt != NULL) {
             vibrant_controller_set_saturation(output, saturation);
-            printf("Set saturation of %s to %f\n", output_name, saturation);
-        } else {
-            saturation = vibrant_controller_get_saturation(output);
-            printf("Saturation of %s is %f\n", output_name, saturation);
         }
+        saturation = vibrant_controller_get_saturation(output);
+        printf("Saturation of %s is %f\n", output_name, saturation);
     }
 
     vibrant_instance_free(&instance);
