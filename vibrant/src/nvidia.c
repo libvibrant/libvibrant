@@ -17,9 +17,11 @@
  */
 
 #include "vibrant/nvidia.h"
+#include "vibrant/vibrant.h"
 
-#include <NVCtrl/NVCtrlLib.h>
 #include <float.h>
+#include <math.h>
+#include <NVCtrl/NVCtrlLib.h>
 
 double nvidia_get_saturation(Display *dpy, int id) {
     int nv_saturation;
@@ -38,6 +40,10 @@ double nvidia_get_saturation(Display *dpy, int id) {
 
 void nvidia_set_saturation(Display *dpy, int id, double saturation) {
     int nv_saturation;
+
+    saturation = fmax(saturation, VIBRANT_SATURATION_MIN);
+    saturation = fmin(saturation, VIBRANT_SATURATION_MAX);
+
     //is saturation roughly in [0.0, 1.0]
     if (saturation >= 0.0 && saturation <= 1.0 + DBL_EPSILON) {
         nv_saturation = saturation * 1024 - 1024;

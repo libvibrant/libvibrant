@@ -60,6 +60,9 @@
 extern "C" {
 #endif // __cplusplus
 
+#define VIBRANT_SATURATION_MIN 0.0
+#define VIBRANT_SATURATION_MAX 4.0
+
 //private structs, users don't need and shouldn't be accessing their data
 typedef struct vibrant_instance vibrant_instance;
 struct vibrant_controller_internal;

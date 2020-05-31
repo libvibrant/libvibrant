@@ -46,12 +46,14 @@
  *
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <X11/Xatom.h>
 
 #include "util.c"
 #include "vibrant/ctm.h"
+#include "vibrant/vibrant.h"
 
 
 #define RANDR_FORMAT 32u
@@ -263,6 +265,10 @@ double ctm_get_saturation(Display *dpy, RROutput output,
 
 void ctm_set_saturation(Display *dpy, RROutput output,
                         double saturation, int *x_status) {
+
+    saturation = fmax(saturation, VIBRANT_SATURATION_MIN);
+    saturation = fmin(saturation, VIBRANT_SATURATION_MAX);
+
     /*
      * These coefficient arrays store a coeff form of the property
      * blob to be set. They will be translated into the format that DDX
