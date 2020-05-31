@@ -1,5 +1,6 @@
-vibrant
+<img src="assets/vibrant.svg" width="64" alt="Logo" title="vibrant Logo"> vibrant
 -------
+
 A simple library to adjust color saturation of X11 outputs.
 
 vibrant, with it's library libvibrant and it's command-line tool vibrant-cli, allows you to adjust the color saturation on X11 outputs, as long as the CTM property is supported.
