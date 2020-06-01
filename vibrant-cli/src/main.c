@@ -63,9 +63,9 @@
  * @param name The output name to search for
  * @return The RandR-Output X-ID if found, 0 (None) otherwise
  */
-static vibrant_controller *
-find_output_by_name(vibrant_controller *controllers, size_t controllers_size,
-                    const char *name) {
+static vibrant_controller *find_output_by_name(vibrant_controller *controllers,
+                                               size_t controllers_size,
+                                               const char *name) {
     for (size_t i = 0; i < controllers_size; i++) {
         if (strcmp(name, controllers[i].info->name) == 0) {
             return controllers + i;
