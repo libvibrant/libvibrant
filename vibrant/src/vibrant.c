@@ -131,7 +131,7 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
             vibrant_controller_internal *priv =
                     malloc(sizeof(vibrant_controller_internal));
             if (priv == NULL) {
-                for (size_t j = 0; j < i; j++) {
+                for (size_t j = 0; j < connected_count; j++) {
                     XRRFreeOutputInfo(controllers[j].info);
                     free(controllers[j].priv);
                 }
