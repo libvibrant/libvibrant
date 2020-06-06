@@ -159,7 +159,17 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
     // resize to only include connected displays
     vibrant_controller *tmp = realloc(controllers,
                                       sizeof(vibrant_controller) * n_connected);
-    if (tmp == NULL) {
+
+    /**
+     * realloc may return NULL if size is 0, depending on the C implementation.
+     * realloc with size 0 is equivalent to free, except for the return value.
+     * Let's force this, so that we don't get any broken pointers.
+     */
+    if (n_connected == 0) {
+        controllers = NULL;
+    }
+
+    if (n_connected > 0 && tmp == NULL) {
         for (int i = 0; i < n_connected; i++) {
             XRRFreeOutputInfo(controllers[i].info);
             free(controllers[i].priv);
@@ -244,11 +254,22 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
                     sizeof(vibrant_controller) *
                     (controllers_size - i - 1));
             controllers_size--;
+            i--;  // stay at current index, as we just popped this index
         }
     }
 
     tmp = realloc(controllers, sizeof(vibrant_controller) * controllers_size);
-    if (tmp == NULL) {
+
+    /**
+     * realloc may return NULL if size is 0, depending on the C implementation.
+     * realloc with size 0 is equivalent to free, except for the return value.
+     * Let's force this, so that we don't get any broken pointers.
+     */
+    if (controllers_size == 0) {
+        controllers = NULL;
+    }
+
+    if (controllers_size > 0 && tmp == NULL) {
         for (int i = 0; i < controllers_size; i++) {
             XRRFreeOutputInfo(controllers[i].info);
             free(controllers[i].priv);
@@ -273,6 +294,7 @@ void vibrant_instance_free(vibrant_instance **instance) {
         XRRFreeOutputInfo((*instance)->controllers[i].info);
         free((*instance)->controllers[i].priv);
     }
+
     free((*instance)->controllers);
     XCloseDisplay((*instance)->dpy);
 
