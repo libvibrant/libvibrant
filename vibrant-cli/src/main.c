@@ -50,8 +50,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <X11/Xlib.h>
-
 #include <vibrant/vibrant.h>
 
 
@@ -77,16 +75,9 @@ static vibrant_controller *find_output_by_name(vibrant_controller *controllers,
 
 
 int main(int argc, char *const argv[]) {
-    int x_status;
-
-    char *saturation_opt = NULL;
-    char *output_name = NULL;
-
     // The following values will hold the parsed double from saturation_opt
-    char *text;
-    double saturation;
 
-    printf("vibrant version %s\n", VIBRANT_VERSION);
+    printf("libvibrant version %s\n", VIBRANT_VERSION);
 
     // Parse arguments
     if (argc < 2) {
@@ -94,15 +85,20 @@ int main(int argc, char *const argv[]) {
 
         return EXIT_FAILURE;
     }
-    output_name = argv[1];
+
+    char *saturation_text;
+    double saturation = -1.0;
+
+    char *output_name = argv[1];
+
     if (argc > 2) {
-        saturation_opt = argv[2];
-        saturation = strtod(saturation_opt, &text);
+        char *saturation_opt = argv[2];
+        saturation = strtod(saturation_opt, &saturation_text);
 
         //text will be set to saturation_opt if strtod fails to convert
-        if (text == saturation_opt || saturation < 0.0 || saturation > 4.0) {
-            printf("SATURATION value must be greater than or equal to 0.0 "
-                   "and less than or equal to 4.0.\n");
+        if (saturation_text == saturation_opt ||
+            saturation < 0.0 || saturation > 4.0) {
+            puts("SATURATION value must be between 0.0 and 4.0.");
 
             return EXIT_FAILURE;
         }
@@ -113,10 +109,10 @@ int main(int argc, char *const argv[]) {
     if ((err = vibrant_instance_new(&instance, NULL)) != vibrant_NoError) {
         switch (err) {
             case vibrant_ConnectToX:
-                puts("Failed to connect to default x server");
+                puts("Failed to connect to default x server.");
                 break;
             case vibrant_NoMem:
-                puts("Failed to allocate memory for vibrant controller");
+                puts("Failed to allocate memory for vibrant controller.");
                 break;
             default:  // satisfy Clang-tidy
                 break;
@@ -129,9 +125,11 @@ int main(int argc, char *const argv[]) {
     size_t controllers_size;
     vibrant_instance_get_controllers(instance, &controllers, &controllers_size);
 
-    /* RandR needs to know which output we're setting the property on.
-     * Since we only have a name to work with, find the RROutput using the
-     * name. */
+    /**
+     * We need to know which output we're setting the property on.
+     * Since we only have a name to work with, find the vibrant_controller
+     * using the name.
+     */
     vibrant_controller *output = find_output_by_name(controllers,
                                                      controllers_size,
                                                      output_name);
@@ -139,9 +137,10 @@ int main(int argc, char *const argv[]) {
         printf("Cannot find output %s in the list of supported outputs, "
                "it either does not exist or is not supported\n",
                output_name);
-        x_status = BadRequest;
+        vibrant_instance_free(&instance);
+        return EXIT_FAILURE;
     } else {
-        if (saturation_opt != NULL) {
+        if (saturation >= 0) {
             vibrant_controller_set_saturation(output, saturation);
         }
         saturation = vibrant_controller_get_saturation(output);
