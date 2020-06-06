@@ -88,7 +88,7 @@ struct vibrant_instance {
     Display *dpy;
 
     vibrant_controller *controllers;
-    size_t controllers_size;
+    int controllers_size;
 };
 
 vibrant_errors vibrant_instance_new(vibrant_instance **instance,
@@ -105,13 +105,13 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
         return vibrant_ConnectToX;
     }
 
-    bool has_nvidia = XNVCTRLQueryExtension(dpy, NULL, NULL);
+    bool dpy_has_nvidia = XNVCTRLQueryExtension(dpy, NULL, NULL);
 
     Window root = DefaultRootWindow(dpy);
     XRRScreenResources *resources = XRRGetScreenResources(dpy, root);
 
-    vibrant_controller *controllers =
-            malloc(sizeof(vibrant_controller) * resources->noutput);
+    vibrant_controller *controllers = malloc(sizeof(vibrant_controller) *
+                                             resources->noutput);
     if (controllers == NULL) {
         XRRFreeScreenResources(resources);
         XCloseDisplay(dpy);
@@ -119,11 +119,11 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
 
         return vibrant_NoMem;
     }
-    size_t controllers_size = resources->noutput;
+    int controllers_size = resources->noutput;
 
-    // search through all outputs, only keep the ones that are connected
-    size_t connected_count = 0;
-    for (size_t i = 0; i < controllers_size; i++) {
+    // filter out disconnected outputs
+    int n_connected = 0;
+    for (int i = 0; i < controllers_size; i++) {
         XRROutputInfo *info = XRRGetOutputInfo(dpy, resources,
                                                resources->outputs[i]);
 
@@ -131,11 +131,13 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
             vibrant_controller_internal *priv =
                     malloc(sizeof(vibrant_controller_internal));
             if (priv == NULL) {
-                for (size_t j = 0; j < connected_count; j++) {
+                // free already added controllers
+                for (int j = 0; j < n_connected; j++) {
                     XRRFreeOutputInfo(controllers[j].info);
                     free(controllers[j].priv);
                 }
 
+                // free everything else
                 XRRFreeScreenResources(resources);
                 XCloseDisplay(dpy);
                 free(controllers);
@@ -145,19 +147,20 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
             }
 
             *priv = (vibrant_controller_internal) {Unknown, -1};
-            controllers[connected_count] = (vibrant_controller) {resources->outputs[i], info,
-                                                   dpy, priv};
-            connected_count++;
+            controllers[n_connected] = (vibrant_controller) {
+                    resources->outputs[i], info,
+                    dpy, priv};
+            n_connected++;
         } else {
             XRRFreeOutputInfo(info);
         }
     }
 
     // resize to only include connected displays
-    vibrant_controller *tmp = realloc(controllers, connected_count *
-                                                   sizeof(vibrant_controller));
+    vibrant_controller *tmp = realloc(controllers,
+                                      sizeof(vibrant_controller) * n_connected);
     if (tmp == NULL) {
-        for (size_t i = 0; i < connected_count; i++) {
+        for (int i = 0; i < n_connected; i++) {
             XRRFreeOutputInfo(controllers[i].info);
             free(controllers[i].priv);
         }
@@ -169,13 +172,15 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
 
         return vibrant_NoMem;
     }
+
     controllers = tmp;
-    controllers_size = connected_count;
+    controllers_size = n_connected;
 
-
-    // this loop marks every display in our controllers array with its
-    // nvidia id if it has one.
-    if (has_nvidia) {
+    /**
+     * Check all available screens and outputs if they are managed by NVIDIA.
+     * If they are set their backend and nvIds
+     */
+    if (dpy_has_nvidia) {
         for (int i = 0; i < ScreenCount(dpy); i++) {
             if (XNVCTRLIsNvScreen(dpy, i)) {
                 int *nvDpyIds;
@@ -213,41 +218,45 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
     }
 
     /**
-     * check through all controllers with no backend, if they have the
-     * CTM property. Then set their function pointers, otherwise we'll remove
-     * them from the list since we can't control them
+     * Check remaining outputs if they support the CTM setting and set their
+     * respective backend
     */
-    for (size_t i = 0; i < controllers_size;) {
+    for (size_t i = 0; i < controllers_size; i++) {
         if (controllers[i].priv->backend == Unknown) {
             if (ctm_output_has_ctm(dpy, controllers[i].output)) {
                 controllers[i].priv->backend = CTM;
                 controllers[i].priv->get_saturation = ctmctrl_get_saturation;
                 controllers[i].priv->set_saturation = ctmctrl_set_saturation;
-            } else {
-                XRRFreeOutputInfo(controllers[i].info);
-                free(controllers[i].priv);
-
-                memmove(controllers + i, controllers + i + 1,
-                        sizeof(vibrant_controller) *
-                        (controllers_size - i - 1));
-                controllers_size--;
-                continue;
             }
         }
+    }
 
-        i++;
+    /**
+     * Remove all remaining outputs, as they are not supported.
+     */
+    for (int i = 0; i < controllers_size; i++) {
+        if (controllers[i].priv->backend == Unknown) {
+            XRRFreeOutputInfo(controllers[i].info);
+            free(controllers[i].priv);
+
+            // move all controllers after i one "to the left"
+            memmove(controllers + i, controllers + i + 1,
+                    sizeof(vibrant_controller) *
+                    (controllers_size - i - 1));
+            controllers_size--;
+        }
     }
 
     tmp = realloc(controllers, sizeof(vibrant_controller) * controllers_size);
     if (tmp == NULL) {
-        for (size_t i = 0; i < controllers_size; i++) {
+        for (int i = 0; i < controllers_size; i++) {
             XRRFreeOutputInfo(controllers[i].info);
             free(controllers[i].priv);
         }
 
-        free(controllers);
         XRRFreeScreenResources(resources);
         XCloseDisplay(dpy);
+        free(controllers);
         free(*instance);
 
         return vibrant_NoMem;
@@ -260,7 +269,7 @@ vibrant_errors vibrant_instance_new(vibrant_instance **instance,
 }
 
 void vibrant_instance_free(vibrant_instance **instance) {
-    for (size_t i = 0; i < (*instance)->controllers_size; i++) {
+    for (int i = 0; i < (*instance)->controllers_size; i++) {
         XRRFreeOutputInfo((*instance)->controllers[i].info);
         free((*instance)->controllers[i].priv);
     }

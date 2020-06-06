@@ -92,7 +92,7 @@ typedef struct vibrant_controller {
  * failed
  */
 vibrant_errors vibrant_instance_new(vibrant_instance **instance,
-        const char *display_name);
+                                    const char *display_name);
 
 /**
  * Deinits instance by closing its X connection and freeing its allocated
