@@ -4,6 +4,7 @@ project(libvibrant VERSION 1.0.2 LANGUAGES C)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
+include(CTest)
 
 set(CMAKE_C_STANDARD 11)
 
