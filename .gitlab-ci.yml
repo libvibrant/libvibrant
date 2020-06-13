@@ -1,0 +1,14 @@
+# use the official gcc image, based on debian
+# can use verions as well, like gcc:5.2
+# see https://hub.docker.com/_/gcc/
+image: gcc
+
+test:
+  stage: test
+  before_script:
+    - apt-get update
+    - apt-get upgrade -y
+    - apt-get install -y cmake build-essential libxnvctrl-dev libxrandr-dev
+  script:
+    - cmake .
+    - make test
