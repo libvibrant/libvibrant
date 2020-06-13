@@ -8,7 +8,7 @@ test:
   before_script:
     - apt-get update
     - apt-get upgrade -y
-    - apt-get install -y cmake build-essential libxnvctrl-dev libxrandr-dev
+    - apt-get install -y cmake build-essential libxnvctrl-dev libxrandr-dev check
   script:
     - cmake .
     - make test
