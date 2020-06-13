@@ -4,7 +4,7 @@ prepare:
   stage: .pre
   script:
     - pacman -Syu --noconfirm --noprogressbar
-    - pacman -S --noconfirm --noprogressbar libxnctrl libxrandr cmake check
+    - pacman -S --noconfirm --noprogressbar libxnvctrl libxrandr cmake check
 
 build:
   stage: build
