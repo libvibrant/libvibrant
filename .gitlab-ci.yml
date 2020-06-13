@@ -11,4 +11,5 @@ test:
     - apt-get install -y cmake build-essential libxnvctrl-dev libxrandr-dev check
   script:
     - cmake .
+    - make
     - make test
