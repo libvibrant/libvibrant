@@ -1,15 +1,20 @@
-# use the official gcc image, based on debian
-# can use verions as well, like gcc:5.2
-# see https://hub.docker.com/_/gcc/
-image: gcc
+image: registry.gitlab.com/scrumplex/docker-archlinux:latest
+
+prepare:
+  stage: .pre
+  script:
+    - pacman -Syu --noconfirm --noprogressbar
+    - pacman -S --noconfirm --noprogressbar libxnctrl libxrandr cmake check
+
+build:
+  stage: build
+  before_script:
+    - cmake -B build
+  script:
+    - make -C build
+
 
 test:
   stage: test
-  before_script:
-    - apt-get update
-    - apt-get upgrade -y
-    - apt-get install -y cmake build-essential libxnvctrl-dev libxrandr-dev check
   script:
-    - cmake .
-    - make
-    - make test
+    - make -C build test
