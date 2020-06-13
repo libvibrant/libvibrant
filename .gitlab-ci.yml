@@ -1,20 +1,25 @@
 image: registry.gitlab.com/scrumplex/docker-archlinux:latest
 
-prepare:
-  stage: .pre
-  script:
-    - pacman -Syu --noconfirm --noprogressbar
-    - pacman -S --noconfirm --noprogressbar libxnvctrl libxrandr cmake check
-
 build:
   stage: build
   before_script:
-    - cmake -B build
+    - pacman -Syu --noconfirm --noprogressbar
+    - pacman -S --noconfirm --noprogressbar libxnvctrl libxrandr cmake check
   script:
+    - cmake -B build
     - make -C build
-
+  artifacts:
+    name: "${CI_BUILD_NAME}"
+    expire_in: 1 hour
+    paths:
+      - build
 
 test:
   stage: test
+  dependencies:
+    - build
+  before_script:
+    - pacman -Syu --noconfirm --noprogressbar
+    - pacman -S --noconfirm --noprogressbar libxnvctrl libxrandr cmake check
   script:
     - make -C build test
