@@ -8,7 +8,7 @@ add_executable(check_util check_util.c)
 target_link_libraries(check_util vibrant ${CHECK_LIBRARIES})
 
 if(SUBUNIT_FOUND)
-    target_link_libraries(check_skilobot subunit)
+    target_link_libraries(check_util subunit)
 endif()
 
 add_test(check_util check_util)
