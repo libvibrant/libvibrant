@@ -15,4 +15,8 @@ set_target_properties(vibrant PROPERTIES SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR
 install(TARGETS vibrant DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lib)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT lib)
 
-add_subdirectory(tests)
+if (VIBRANT_ENABLE_TESTS)
+    add_subdirectory(tests)
+else ()
+    message("Tests have been disabled. Set VIBRANT_ENABLE_TESTS=ON to enable them")
+endif ()
