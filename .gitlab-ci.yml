@@ -6,7 +6,7 @@ build:
     - pacman -Syu --noconfirm --noprogressbar
     - pacman -S --noconfirm --noprogressbar libxnvctrl libxrandr cmake check
   script:
-    - cmake -B build
+    - cmake -B build -DVIBRANT_ENABLE_TESTS=ON
     - make -C build
   artifacts:
     name: "${CI_BUILD_NAME}"
