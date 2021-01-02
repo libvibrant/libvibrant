@@ -121,22 +121,31 @@ static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
  * @param padded_ctm Padded color CTM formatted input
  * @param coeffs Translated coefficients will be placed here.
  */
-static void vibrant_translate_padded_ctm_to_coeffs(const uint64_t *padded_ctm,
+static void vibrant_translate_padded_ctm_to_coeffs(const long *padded_ctm,
                                                    double *coeffs) {
     int i;
 
     for (i = 0; i < 18; i += 2) {
-        uint32_t ctm1 = padded_ctm[i];
-        uint32_t ctm2 = padded_ctm[i + 1];
+        /* Workaround Episode 2:
+         * As discussed in ctm_set_ctm, the X server stores our CTM values as
+         * two longs for each S31.32 coefficient. We can easily cast our longs
+         * into uint32_t as our data is always 32-bits in size.
+         * Now the funny part:
+         * For some reason X11 returns it as big endian. That's why the odd
+         * ones in padded_ctm are the most-significant bits.
+         */
 
-        // shove ctm2 and ctm1 into one int64
-        uint64_t ctm_n = ((uint64_t) ctm2) << 32u | ctm1;
+        uint32_t ctm_lsb = padded_ctm[i];
+        uint32_t ctm_msb = padded_ctm[i + 1];
+
+        // shove ctm_msb and ctm_lsb into one int64
+        uint64_t ctm_n = ((uint64_t) ctm_msb) << 32u | ctm_lsb;
         // clear sign bit
         ctm_n = (ctm_n & ~(1ULL << 63u));
         // convert fixed-point representation to floating point
         double ctm_d = ctm_n / pow(2.0, 32);
         // recover original sign bit
-        if (ctm2 & (1u << 31u))
+        if (ctm_msb & (1u << 31u))
             ctm_d *= -1;
         coeffs[i / 2] = ctm_d;
     }

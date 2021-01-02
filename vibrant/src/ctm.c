@@ -135,7 +135,7 @@ int ctm_set_output_blob(Display *dpy, RROutput output,
  * @return X-defined return code
  */
 int ctm_get_output_blob(Display *dpy, RROutput output,
-                        const char *prop_name, uint64_t *blob_data) {
+                        const char *prop_name, long *blob_data) {
 
     int ret, actual_format;
     unsigned long n_items, bytes_after;
@@ -169,7 +169,7 @@ int ctm_get_output_blob(Display *dpy, RROutput output,
              * Due to some restrictions in RandR, array properties of 32-bit format
              * must be of type 'long'. See set_ctm() for details.
              */
-            blob_data[i] = ((uint64_t *) buffer)[i];
+            blob_data[i] = ((long *) buffer)[i];
         }
         return Success;
     }
@@ -200,24 +200,27 @@ int ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
      * RandR currently uses long types for 32-bit integer format. However,
      * 64-bit systems will use 64-bits for long, causing data corruption
      * once RandR parses the data. Therefore, pad the blob_data to be long-
-     * sized. This will work regardless of how long is defined (as long as
-     * it's at least 32-bits).
+     * sized. This will work regardless of how long is defined (long is
+     * at least 32-bits).
      *
      * Note that we have a 32-bit format restriction; we have to interpret
      * each S31.32 fixed point number within the CTM in two parts: The
      * whole part (S31), and the fractional part (.32). They're then stored
-     * (as separate parts) into a long-typed array. Of course, This problem
-     * wouldn't exist if xserver accepted 64-bit formats.
+     * (as separate parts) into a long-typed array. Of course, this problem
+     * wouldn't exist if xserver accepted 64-bit formats directly, instead of
+     * two at least 32-bits sized parts.
      *
      * A gotcha here is the endianness of the S31.32 values. The whole part
-     * will either come before or after the fractional part. (before in
-     * big-endian format, and after in small-endian format). We could avoid
+     * will either come before or after the fractional part. We could avoid
      * dealing with this by doing a straight memory copy, but we have to
      * ensure that each 32-bit element is padded to long-size in the
      * process.
+     *
+     * We just assume little-endian, which is why we don't even bother.
      */
     for (i = 0; i < 18; i++)
         // Think of this as a padded 'memcpy()'.
+        // long* padded_ctm <- (uint32_t *) ctm.matrix
         padded_ctm[i] = ((uint32_t *) ctm.matrix)[i];
 
     ret = ctm_set_output_blob(dpy, output, PROP_CTM, &padded_ctm,
@@ -238,7 +241,7 @@ int ctm_set_ctm(Display *dpy, RROutput output, double *coeffs) {
  * @return X-defined return code (See get_output_blob())
  */
 int ctm_get_ctm(Display *dpy, RROutput output, double *coeffs) {
-    uint64_t padded_ctm[18];
+    long padded_ctm[18];
     int ret = ctm_get_output_blob(dpy, output, PROP_CTM, padded_ctm);
 
     vibrant_translate_padded_ctm_to_coeffs(padded_ctm, coeffs);
