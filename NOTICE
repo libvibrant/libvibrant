@@ -1,4 +1,4 @@
-vibrantX - Adjust color vibrancy of X11 output
+vibrant - Adjust color vibrancy of X11 output
 Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
 
 This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 
-vibrantX is based on color-demo-app written by Leo (Sunpeng) Li <sunpeng.li@amd.com>
+vibrant is based on color-demo-app written by Leo (Sunpeng) Li <sunpeng.li@amd.com>
 Original license text of color-demo-app:
 
 Copyright 2018 Advanced Micro Devices, Inc.
