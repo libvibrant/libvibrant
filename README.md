@@ -1,5 +1,12 @@
 <img src="assets/vibrant.svg" width="64" alt="Logo" title="vibrant Logo"> vibrant
 -------
+**:warning: NOTE :warning:**
+
+libvibrant is in maintenance-only right now, as it's rather feature-complete.
+As I (@Scrumplex) have switched to Wayland for some time now, I can't and won't work on this library anymore.
+An effort for Wayland is planned in the future, though it will take some time until this can be implemented in a compositor-agnostic way.
+
+---
 
 A simple library to adjust color saturation of X11 outputs.
 
