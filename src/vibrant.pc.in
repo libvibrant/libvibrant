@@ -1,0 +1,13 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include/vibrant
+
+Name: vibrant
+Description: libvibrant simple library to adjust color saturation of X11 outputs.
+Version: @CMAKE_PROJECT_VERSION@
+
+Requires: x11 xrandr
+Libs: -L${libdir} -lvibrant -lm
+Libs.private: -lXNVCtrl
+Cflags: -I${includedir}

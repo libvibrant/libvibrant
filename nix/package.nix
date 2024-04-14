@@ -15,9 +15,10 @@ stdenv.mkDerivation {
     root = ../.;
     fileset = lib.fileset.unions (
       map (fileName: ../${fileName}) [
+        "cli"
         "cmake"
-        "vibrant"
-        "vibrant-cli"
+        "include"
+        "src"
         "CMakeLists.txt"
       ]
     );

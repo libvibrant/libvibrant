@@ -50,7 +50,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#include <vibrant/ctm.h>
+#include "vibrant/ctm.h"
 
 /**
  * Generate CTM coefficients from double value.

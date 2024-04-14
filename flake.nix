@@ -24,7 +24,7 @@
       packages = forAllSystems (
         pkgs: _: rec {
           default = libvibrant;
-          libvibrant = pkgs.qt6Packages.callPackage ./nix/package.nix { };
+          libvibrant = pkgs.callPackage ./nix/package.nix { };
         }
       );
 
