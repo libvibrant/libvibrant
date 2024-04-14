@@ -1,7 +1,7 @@
 /*
  * vibrant - Adjust color vibrancy of X11 output
- * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
- * Copyright (C) 2020  zee
+ * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net>
+ * (https://scrumplex.net) Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
  */
 
 /*
- * vibrant is based on color-demo-app written by Leo (Sunpeng) Li <sunpeng.li@amd.com>
+ * vibrant is based on color-demo-app written by Leo (Sunpeng) Li
+ * <sunpeng.li@amd.com>
  *
  * Original license text of color-demo-app:
  *
@@ -61,15 +62,15 @@
  * @param coeffs Double array with a length of 9, holding the coefficients
  * will be placed here.
  */
-static void
-vibrant_saturation_to_coeffs(const double saturation, double *coeffs) {
-    double coeff = (1.0 - saturation) / 3.0;
-    for (int i = 0; i < 9; i++) {
-        /* set coefficients. If index is divisible by four (0, 4, 8) add
-         * saturation to coeff
-         */
-        coeffs[i] = coeff + (i % 4 == 0 ? saturation : 0);
-    }
+static void vibrant_saturation_to_coeffs(const double saturation,
+                                         double *coeffs) {
+  double coeff = (1.0 - saturation) / 3.0;
+  for (int i = 0; i < 9; i++) {
+    /* set coefficients. If index is divisible by four (0, 4, 8) add
+     * saturation to coeff
+     */
+    coeffs[i] = coeff + (i % 4 == 0 ? saturation : 0);
+  }
 }
 
 /**
@@ -79,13 +80,13 @@ vibrant_saturation_to_coeffs(const double saturation, double *coeffs) {
  * @return Saturation value generally between 0.0 and 4.0
  */
 static double vibrant_coeffs_to_saturation(const double *coeffs) {
-    /*
-     * When calculating the coefficients we add the saturation value to the
-     * coefficients with indices 0, 4, 8. This means we can just subtract
-     * a coefficient other than 0, 4, 8 from a coefficient at indices 0, 4, 8.
-     */
+  /*
+   * When calculating the coefficients we add the saturation value to the
+   * coefficients with indices 0, 4, 8. This means we can just subtract
+   * a coefficient other than 0, 4, 8 from a coefficient at indices 0, 4, 8.
+   */
 
-    return coeffs[0] - coeffs[1];
+  return coeffs[0] - coeffs[1];
 }
 
 /**
@@ -99,16 +100,14 @@ static double vibrant_coeffs_to_saturation(const double *coeffs) {
  */
 static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
                                             struct drm_color_ctm *ctm) {
-    int i;
-    for (i = 0; i < 9; i++) {
-        if (coeffs[i] < 0) {
-            ctm->matrix[i] =
-                    (int64_t) (-coeffs[i] * ((uint64_t) 1L << 32u));
-            ctm->matrix[i] |= 1ULL << 63u;
-        } else
-            ctm->matrix[i] =
-                    (int64_t) (coeffs[i] * ((uint64_t) 1L << 32u));
-    }
+  int i;
+  for (i = 0; i < 9; i++) {
+    if (coeffs[i] < 0) {
+      ctm->matrix[i] = (int64_t)(-coeffs[i] * ((uint64_t)1L << 32u));
+      ctm->matrix[i] |= 1ULL << 63u;
+    } else
+      ctm->matrix[i] = (int64_t)(coeffs[i] * ((uint64_t)1L << 32u));
+  }
 }
 
 /**
@@ -123,31 +122,30 @@ static void vibrant_translate_coeffs_to_ctm(const double *coeffs,
  */
 static void vibrant_translate_padded_ctm_to_coeffs(const long *padded_ctm,
                                                    double *coeffs) {
-    int i;
+  int i;
 
-    for (i = 0; i < 18; i += 2) {
-        /* Workaround Episode 2:
-         * As discussed in ctm_set_ctm, the X server stores our CTM values as
-         * two longs for each S31.32 coefficient. We can easily cast our longs
-         * into uint32_t as our data is always 32-bits in size.
-         * Now the funny part:
-         * For some reason X11 returns it as big endian. That's why the odd
-         * ones in padded_ctm are the most-significant bits.
-         */
+  for (i = 0; i < 18; i += 2) {
+    /* Workaround Episode 2:
+     * As discussed in ctm_set_ctm, the X server stores our CTM values as
+     * two longs for each S31.32 coefficient. We can easily cast our longs
+     * into uint32_t as our data is always 32-bits in size.
+     * Now the funny part:
+     * For some reason X11 returns it as big endian. That's why the odd
+     * ones in padded_ctm are the most-significant bits.
+     */
 
-        uint32_t ctm_lsb = padded_ctm[i];
-        uint32_t ctm_msb = padded_ctm[i + 1];
+    uint32_t ctm_lsb = padded_ctm[i];
+    uint32_t ctm_msb = padded_ctm[i + 1];
 
-        // shove ctm_msb and ctm_lsb into one int64
-        uint64_t ctm_n = ((uint64_t) ctm_msb) << 32u | ctm_lsb;
-        // clear sign bit
-        ctm_n = (ctm_n & ~(1ULL << 63u));
-        // convert fixed-point representation to floating point
-        double ctm_d = ctm_n / pow(2.0, 32);
-        // recover original sign bit
-        if (ctm_msb & (1u << 31u))
-            ctm_d *= -1;
-        coeffs[i / 2] = ctm_d;
-    }
+    // shove ctm_msb and ctm_lsb into one int64
+    uint64_t ctm_n = ((uint64_t)ctm_msb) << 32u | ctm_lsb;
+    // clear sign bit
+    ctm_n = (ctm_n & ~(1ULL << 63u));
+    // convert fixed-point representation to floating point
+    double ctm_d = ctm_n / pow(2.0, 32);
+    // recover original sign bit
+    if (ctm_msb & (1u << 31u))
+      ctm_d *= -1;
+    coeffs[i / 2] = ctm_d;
+  }
 }
-

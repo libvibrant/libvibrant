@@ -1,7 +1,7 @@
 /*
  * vibrant - Adjust color vibrancy of X11 output
- * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
- * Copyright (C) 2020  zee
+ * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net>
+ * (https://scrumplex.net) Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
  */
 
 /*
- * vibrant is based on color-demo-app written by Leo (Sunpeng) Li <sunpeng.li@amd.com>
+ * vibrant is based on color-demo-app written by Leo (Sunpeng) Li
+ * <sunpeng.li@amd.com>
  *
  * Original license text of color-demo-app:
  *
@@ -63,23 +64,23 @@ extern "C" {
 #define VIBRANT_SATURATION_MIN 0.0
 #define VIBRANT_SATURATION_MAX 4.0
 
-//private structs, users don't need and shouldn't be accessing their data
+// private structs, users don't need and shouldn't be accessing their data
 typedef struct vibrant_instance vibrant_instance;
 struct vibrant_controller_internal;
 
 typedef enum vibrant_errors {
-    vibrant_NoError,
-    vibrant_ConnectToX,
-    vibrant_NoMem
+  vibrant_NoError,
+  vibrant_ConnectToX,
+  vibrant_NoMem
 } vibrant_errors;
 
 typedef struct vibrant_controller {
-    RROutput output;
-    XRROutputInfo *info;
-    //copy of display of the owning vibrant_instance
-    Display *display;
+  RROutput output;
+  XRROutputInfo *info;
+  // copy of display of the owning vibrant_instance
+  Display *display;
 
-    struct vibrant_controller_internal *priv;
+  struct vibrant_controller_internal *priv;
 } vibrant_controller;
 
 /**
@@ -128,7 +129,6 @@ double vibrant_controller_get_saturation(vibrant_controller *controller);
  */
 void vibrant_controller_set_saturation(vibrant_controller *controller,
                                        double saturation);
-
 
 #ifdef __cplusplus
 }

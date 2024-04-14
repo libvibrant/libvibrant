@@ -1,7 +1,7 @@
 /*
  * vibrant - Adjust color vibrancy of X11 output
- * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net> (https://scrumplex.net)
- * Copyright (C) 2020  zee
+ * Copyright (C) 2020  Sefa Eyeoglu <contact@scrumplex.net>
+ * (https://scrumplex.net) Copyright (C) 2020  zee
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
  */
 
 /*
- * vibrant is based on color-demo-app written by Leo (Sunpeng) Li <sunpeng.li@amd.com>
+ * vibrant is based on color-demo-app written by Leo (Sunpeng) Li
+ * <sunpeng.li@amd.com>
  *
  * Original license text of color-demo-app:
  *
@@ -62,11 +63,11 @@ extern "C" {
  * From drm/drm_mode.h
  */
 struct drm_color_ctm {
-    /*
-     * Conversion matrix in S31.32 sign-magnitude
-     * (not two's complement!) format.
-     */
-    u_int64_t matrix[9];
+  /*
+   * Conversion matrix in S31.32 sign-magnitude
+   * (not two's complement!) format.
+   */
+  u_int64_t matrix[9];
 };
 
 /**
@@ -89,8 +90,8 @@ double ctm_get_saturation(Display *dpy, RROutput output, int *x_status);
  * @param saturation Saturation of output
  * @param x_status X-defined return code (See get_ctm())
  */
-void ctm_set_saturation(Display *dpy, RROutput output,
-                        double saturation, int *x_status);
+void ctm_set_saturation(Display *dpy, RROutput output, double saturation,
+                        int *x_status);
 
 /**
  * Check if output has the CTM property.

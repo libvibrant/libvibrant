@@ -28,4 +28,4 @@ double nvidia_get_saturation(Display *dpy, int id);
 
 void nvidia_set_saturation(Display *dpy, int id, double saturation);
 
-#endif //LIBVIBRANT_NVIDIA_H
+#endif // LIBVIBRANT_NVIDIA_H
