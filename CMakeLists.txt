@@ -39,7 +39,7 @@ target_link_libraries(vibrant PUBLIC ${X11_LIBRARIES} ${X11_Xrandr_LIB} PRIVATE 
 install(TARGETS vibrant DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lib)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT lib)
 configure_file(src/vibrant.pc.in src/vibrant.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/src/vibrant.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/src/vibrant.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT lib)
 
 # Tests
 
